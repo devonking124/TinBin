@@ -5,6 +5,10 @@ No dependencies, no assets — all art is drawn on Canvas 2D and all audio is sy
 
 Open `index.html` in any modern browser (desktop or mobile) to play. The game autosaves to localStorage.
 
-Mine ore, move it on conveyors, smelt and assemble 33 items across 5 tiers, balance a power grid,
-sell into a dynamic market, research a tech tree, and optionally relocate for permanent bonuses.
+Mine ore, pump water and oil, grow crops and trees, move everything on conveyors, and turn it into
+108 items — alloys, pottery, paper, food, weapons & ammunition, electronics and nuclear fuel — ending in
+**Final Matter**. Ship goods from Market Hubs and Liquid Depots, take contracts, research five tiers of
+tech with Research Points, keep pollution in check, explore caves through underground belts, and
+relocate for permanent bonuses.
+
 All content and balance numbers live in the `CONFIG & DATA TABLES` section at the top of the script.
