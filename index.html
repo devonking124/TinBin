@@ -350,13 +350,45 @@ kbd{display:inline-block;min-width:1.5em;text-align:center;background:#0c1015;bo
   .settings-grid{grid-template-columns:1fr}
   .slots{grid-template-columns:1fr}
   #tut{top:auto;bottom:12.6rem;right:.6rem;max-width:none}
+  #topbar{align-items:flex-start}
+  .speed-chip,#alerts-chip{padding:.35rem .5rem;gap:.3rem}
+  .speed-chip .lbl,#alerts-chip .lbl{display:none}
+  #save-ind{bottom:auto;top:6.6rem;left:.6rem}
 }
 @media (pointer:coarse){ #tool-draw{display:flex!important} }
+/* ---------- v5 polish ---------- */
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 48%,rgba(0,0,0,0) 58%,rgba(4,8,14,.38) 100%)}
+.chip,.ibtn,#tools,#buildbar,#inspector,#minimap-wrap{background:linear-gradient(180deg,rgba(34,42,54,.95),rgba(17,22,29,.95));box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.07),inset 0 -1px 0 rgba(0,0,0,.35)}
+.ibtn:hover{background:linear-gradient(180deg,#34404f,#222b36)}
+#tools .ibtn{background:transparent}
+#tools .ibtn:hover{background:var(--panel3)}
+#tools .ibtn.on,.ibtn.on{background:linear-gradient(180deg,#4a3818,#2e220e);box-shadow:inset 0 0 0 1px var(--accent),0 0 12px rgba(240,165,58,.25)}
+.btn{background:linear-gradient(180deg,#2a3441,#1d252f);box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+.btn:hover{background:linear-gradient(180deg,#354253,#252f3b)}
+.btn.primary{background:linear-gradient(180deg,#ffbf5c,#e0901f);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 2px 8px rgba(240,165,58,.25)}
+.btn.primary:hover{background:linear-gradient(180deg,#ffcb78,#eea03a)}
+.pbar i,#obj-bar i{background-image:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 60%)}
+#cash{text-shadow:0 0 12px rgba(142,227,138,.35)}
+#cash.up{animation:cashpop .35s var(--ease)}
+@keyframes cashpop{0%{transform:scale(1)}40%{transform:scale(1.08);color:#c8ffc0}100%{transform:scale(1)}}
+.toast{background:linear-gradient(180deg,rgba(28,35,45,.97),rgba(14,18,24,.97));box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(6px)}
+.rbtn{background:linear-gradient(180deg,#26303c,#1a212a)}
+.rbtn.sel{background:linear-gradient(180deg,#4a3818,#2e220e);box-shadow:0 0 10px rgba(240,165,58,.3)}
+.speed-chip b{min-width:1.8rem;text-align:center}
+.speed-chip.paused{border-color:var(--warn);color:var(--warn);animation:pausepulse 1.2s ease-in-out infinite}
+@keyframes pausepulse{50%{box-shadow:var(--shadow),0 0 14px rgba(241,200,75,.45)}}
+#alerts-chip.has{border-color:var(--bad);color:#ffc0c0}
+#alerts-chip .n{font-weight:700}
+#save-ind{position:fixed;left:.8rem;bottom:.8rem;z-index:12;font-size:.75rem;color:var(--dim);background:rgba(14,18,24,.85);border:1px solid var(--line);border-radius:.5rem;padding:.25rem .55rem;opacity:0;transition:opacity .4s;pointer-events:none;display:flex;gap:.35rem;align-items:center}
+#save-ind.on{opacity:1}
+#save-ind i{width:.55rem;height:.55rem;border-radius:50%;background:var(--good);box-shadow:0 0 6px var(--good);animation:pausepulse .8s infinite}
 </style>
 </head>
 <body>
 <canvas id="game" tabindex="0" aria-label="Factory map"></canvas>
 <canvas id="fx"></canvas>
+<div id="vignette"></div>
+<div id="save-ind"><i></i><span>Saved</span></div>
 
 <div id="topbar">
   <div class="chip" id="st-cash" title="Cash · income per minute">
@@ -373,6 +405,8 @@ kbd{display:inline-block;min-width:1.5em;text-align:center;background:#0c1015;bo
   <button class="chip" id="st-poll" title="Pollution — click to toggle the pollution map (P)">
     <div class="col"><span class="lbl">Pollution</span><b id="poll-text">0</b></div><small id="poll-tax"></small>
   </button>
+  <button class="chip speed-chip" id="st-speed" title="Game speed — Space pauses, , / . change speed (right-click: slower)"><span id="spd-pause">⏸</span><div class="col"><span class="lbl">Speed</span><b id="spd-x">1×</b></div></button>
+  <button class="chip hidden" id="alerts-chip" title="Machines needing attention"><span>⚠</span><div class="col"><span class="lbl">Alerts</span><b class="n" id="alerts-n">0</b></div></button>
   <div class="chip" id="objective" title="Current objective — click for goals">
     <div class="col"><span class="lbl">Objective</span><span id="obj-text">—</span><div id="obj-bar"><i></i></div></div>
   </div>
@@ -398,6 +432,7 @@ kbd{display:inline-block;min-width:1.5em;text-align:center;background:#0c1015;bo
     <button class="ibtn" id="tool-demolish" title="Demolish — click or drag a box (X)"><svg class="i"><use href="#i-hammer"/></svg></button>
     <button class="ibtn" id="tool-copy" title="Copy area — drag a box (C)"><svg class="i"><use href="#i-copy"/></svg></button>
     <button class="ibtn" id="tool-paste" title="Paste last copy (V)"><svg class="i"><use href="#i-paste"/></svg></button>
+    <button class="ibtn" id="tool-upgrade" title="Upgrade planner — click or drag a box to upgrade tiers (U)"><svg class="i"><use href="#i-up"/></svg></button>
     <span class="sep"></span>
     <button class="ibtn" id="tool-rotate" title="Rotate (R)"><svg class="i"><use href="#i-rotate"/></svg></button>
     <button class="ibtn" id="tool-undo" title="Undo (Ctrl+Z)"><svg class="i"><use href="#i-undo"/></svg></button>
@@ -446,6 +481,7 @@ kbd{display:inline-block;min-width:1.5em;text-align:center;background:#0c1015;bo
   <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></symbol>
   <symbol id="i-cursor" viewBox="0 0 24 24"><path d="m5 3 14 8-6 2-2 6z"/></symbol>
   <symbol id="i-hammer" viewBox="0 0 24 24"><path d="m14 6 4 4M12 8l-8 8 4 4 8-8M13 3l8 8-3 3-8-8z"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V6M6 11l6-6 6 6"/><path d="M5 21h14"/></symbol>
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
   <symbol id="i-paste" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11h6M9 15h4"/></symbol>
   <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></symbol>
@@ -517,23 +553,23 @@ const BALANCE = {
 /* ---------- Resources on the map ----------
    zone: [min, max] distance from spawn as a fraction of the map radius. n = patches per 256² of land. */
 const RES = [null,
-  { id: 'iron',     item: 'iron_ore',     name: 'Iron',     base: '#8c5a47', hi: '#c98a6e', lo: '#5a3526', zone: [0, 1], n: 26 },
-  { id: 'copper',   item: 'copper_ore',   name: 'Copper',   base: '#c66f2c', hi: '#f0a45c', lo: '#7d3f14', zone: [0, 1], n: 22 },
-  { id: 'coal',     item: 'coal',         name: 'Coal',     base: '#2b2b30', hi: '#55555e', lo: '#141417', zone: [0, 1], n: 20 },
-  { id: 'stone',    item: 'stone',        name: 'Stone',    base: '#9d998f', hi: '#cfcbc0', lo: '#6a665e', zone: [0, 1], n: 18 },
-  { id: 'sand',     item: 'sand',         name: 'Sand',     base: '#d9bd6a', hi: '#f3dc92', lo: '#a88b3e', zone: [0, 1], n: 16 },
-  { id: 'quartz',   item: 'quartz',       name: 'Quartz',   base: '#d8c3e6', hi: '#fbf0ff', lo: '#9b7fb0', zone: [0.15, 1], n: 12 },
-  { id: 'oil',      item: 'crude',        name: 'Oil',      base: '#2a1d33', hi: '#5b3e70', lo: '#120b17', zone: [0.15, 1], n: 11 },
-  { id: 'clay',     item: 'clay',         name: 'Clay',     base: '#a8674a', hi: '#d6906c', lo: '#6e3f2a', zone: [0, 1], n: 12, wet: true },
-  { id: 'tin',      item: 'tin_ore',      name: 'Tin',      base: '#aab6ba', hi: '#dfe8ea', lo: '#6c787c', zone: [0.25, 0.8], n: 12 },
-  { id: 'zinc',     item: 'zinc_ore',     name: 'Zinc',     base: '#7fa396', hi: '#b6d6ca', lo: '#4a6a5e', zone: [0.25, 0.8], n: 12 },
-  { id: 'sulfur',   item: 'sulfur',       name: 'Sulfur',   base: '#d6cf3c', hi: '#fbf690', lo: '#8f8a1c', zone: [0.3, 1], n: 10 },
-  { id: 'cobalt',   item: 'cobalt_ore',   name: 'Cobalt',   base: '#2f4fb8', hi: '#6f8ff0', lo: '#1a2c6e', zone: [0.45, 1], n: 8, cave: true },
-  { id: 'silver',   item: 'silver_ore',   name: 'Silver',   base: '#c4cad4', hi: '#ffffff', lo: '#7a808a', zone: [0.45, 1], n: 7, cave: true },
-  { id: 'titanium', item: 'titanium_ore', name: 'Titanium', base: '#7c8498', hi: '#bcc4d8', lo: '#474e60', zone: [0.6, 1], n: 7 },
-  { id: 'uranium',  item: 'uranium_ore',  name: 'Uranium',  base: '#4fb838', hi: '#a6ff8a', lo: '#23601a', zone: [0.65, 1], n: 5 },
-  { id: 'gold',     item: 'gold_ore',     name: 'Gold',     base: '#d9a820', hi: '#ffe27a', lo: '#7a5a0c', zone: [0.6, 1], n: 5, cave: true },
-  { id: 'bismuth',  item: 'bismuth',      name: 'Bismuth',  base: '#b46fd6', hi: '#f0b8ff', lo: '#5e2e78', zone: [2, 2], n: 0, cave: true },
+  { id: 'iron',     item: 'iron_ore',     name: 'Iron',     base: '#8c5a47', hi: '#c98a6e', lo: '#5a3526', zone: [0, 1], n: 26, hand: 0 },
+  { id: 'copper',   item: 'copper_ore',   name: 'Copper',   base: '#c66f2c', hi: '#f0a45c', lo: '#7d3f14', zone: [0, 1], n: 22, hand: 0 },
+  { id: 'coal',     item: 'coal',         name: 'Coal',     base: '#2b2b30', hi: '#55555e', lo: '#141417', zone: [0, 1], n: 20, hand: 0 },
+  { id: 'stone',    item: 'stone',        name: 'Stone',    base: '#9d998f', hi: '#cfcbc0', lo: '#6a665e', zone: [0, 1], n: 18, hand: 0 },
+  { id: 'sand',     item: 'sand',         name: 'Sand',     base: '#d9bd6a', hi: '#f3dc92', lo: '#a88b3e', zone: [0, 1], n: 16, hand: 0 },
+  { id: 'quartz',   item: 'quartz',       name: 'Quartz',   base: '#d8c3e6', hi: '#fbf0ff', lo: '#9b7fb0', zone: [0.15, 1], n: 12, hand: 1 },
+  { id: 'oil',      item: 'crude',        name: 'Oil',      base: '#2a1d33', hi: '#5b3e70', lo: '#120b17', zone: [0.15, 1], n: 11, hand: -1 },
+  { id: 'clay',     item: 'clay',         name: 'Clay',     base: '#a8674a', hi: '#d6906c', lo: '#6e3f2a', zone: [0, 1], n: 12, hand: 0, wet: true },
+  { id: 'tin',      item: 'tin_ore',      name: 'Tin',      base: '#aab6ba', hi: '#dfe8ea', lo: '#6c787c', zone: [0.25, 0.8], n: 12, hand: 1 },
+  { id: 'zinc',     item: 'zinc_ore',     name: 'Zinc',     base: '#7fa396', hi: '#b6d6ca', lo: '#4a6a5e', zone: [0.25, 0.8], n: 12, hand: 1 },
+  { id: 'sulfur',   item: 'sulfur',       name: 'Sulfur',   base: '#d6cf3c', hi: '#fbf690', lo: '#8f8a1c', zone: [0.3, 1], n: 10, hand: 1 },
+  { id: 'cobalt',   item: 'cobalt_ore',   name: 'Cobalt',   base: '#2f4fb8', hi: '#6f8ff0', lo: '#1a2c6e', zone: [0.45, 1], n: 8, hand: 2, cave: true },
+  { id: 'silver',   item: 'silver_ore',   name: 'Silver',   base: '#c4cad4', hi: '#ffffff', lo: '#7a808a', zone: [0.45, 1], n: 7, hand: 2, cave: true },
+  { id: 'titanium', item: 'titanium_ore', name: 'Titanium', base: '#7c8498', hi: '#bcc4d8', lo: '#474e60', zone: [0.6, 1], n: 7, hand: 3 },
+  { id: 'uranium',  item: 'uranium_ore',  name: 'Uranium',  base: '#4fb838', hi: '#a6ff8a', lo: '#23601a', zone: [0.65, 1], n: 5, hand: 4 },
+  { id: 'gold',     item: 'gold_ore',     name: 'Gold',     base: '#d9a820', hi: '#ffe27a', lo: '#7a5a0c', zone: [0.6, 1], n: 5, hand: 3, cave: true },
+  { id: 'bismuth',  item: 'bismuth',      name: 'Bismuth',  base: '#b46fd6', hi: '#f0b8ff', lo: '#5e2e78', zone: [2, 2], n: 0, hand: 4, cave: true },
 ];
 const RES_OIL = 7, RES_CLAY = 8, RES_BISMUTH = 17;
 
@@ -541,7 +577,7 @@ const RES_OIL = 7, RES_CLAY = 8, RES_BISMUTH = 17;
 const ITEM_CATS = [
   ['raw', 'Raw'], ['metal', 'Metals & Alloys'], ['material', 'Materials'], ['part', 'Parts'], ['electronics', 'Electronics'],
   ['liquid', 'Liquids & Chemicals'], ['food', 'Food & Farming'], ['wood', 'Wood & Paper'], ['pottery', 'Pottery'],
-  ['weapon', 'Weapons'], ['nuclear', 'Nuclear'], ['science', 'Science'], ['hightech', 'High-tech'],
+  ['weapon', 'Weapons'], ['nuclear', 'Nuclear'], ['science', 'Science'], ['hightech', 'High-tech'], ['luxury', 'Crafts & Luxury'],
 ];
 const ITEM_DEFS = [
   ['iron_ore', 'Iron Ore', 0, '#b0715a', 'ore', 1, 'raw'],
@@ -653,6 +689,17 @@ const ITEM_DEFS = [
   ['fertilizer', 'Fertilizer', 2, '#6ac04a', 'powder', 0, 'food'],
   ['sci_purple', 'Purple Science', 5, '#b04ae0', 'flask', 0, 'science'],
   ['final_matter', 'Final Matter', 6, '#ffffff', 'orb', 0, 'hightech'],
+  // ---- v5 additions (append only) ----
+  ['jar', 'Glass Jar', 2, '#bfe8f0', 'jar', 0, 'material'],
+  ['jam', 'Berry Jam', 3, '#a03ac0', 'jar', 0, 'food'],
+  ['fireworks', 'Fireworks', 3, '#e04a8a', 'firework', 0, 'luxury'],
+  ['toy', 'Toy Robot', 3, '#f0b030', 'toy', 0, 'luxury'],
+  ['jewelry', 'Jewelry', 4, '#f5d060', 'ring', 0, 'luxury'],
+  ['clock', 'Mantel Clock', 3, '#d8b050', 'clock', 0, 'luxury'],
+  ['mirror', 'Mirror', 3, '#dff4ff', 'mirror', 0, 'luxury'],
+  ['statue', 'Statue', 3, '#d8d4c8', 'statue', 0, 'luxury'],
+  ['drone', 'Drone', 5, '#5ab8e0', 'drone', 0, 'hightech'],
+  ['armor', 'Armor Plating', 4, '#6a7a8a', 'armor', 0, 'weapon'],
 ];
 
 /* ---------- Recipes: [id, machine class, seconds, inputs, outputs, tech, bigOnly?] ----------
@@ -740,12 +787,22 @@ const RECIPE_DEFS = [
   ['sci_purple', 'assemble', 15, { processor: 1, ti_alloy: 1 }, { sci_purple: 2 }, 'electronics2'],
   ['ai_core', 'fabricate', 30, { processor: 4, supercomputer: 1, adv_battery: 2 }, { ai_core: 1 }, 'ai'],
   ['railgun', 'fabricate', 40, { ti_alloy: 4, adv_battery: 2, rifle: 1, superalloy: 1 }, { railgun: 1 }, 'ai'],
+  ['jar', 'kiln', 2.5, { glass: 1 }, { jar: 2 }, 'crafts'],
+  ['jam', 'cook', 6, { berries: 3, jar: 1 }, { jam: 1 }, 'crafts'],
+  ['fireworks', 'munitions', 6, { gunpowder: 2, paper: 2 }, { fireworks: 1 }, 'munitions'],
+  ['toy', 'assemble', 6, { plastic: 1, gear: 2, circuit: 1 }, { toy: 1 }, 'crafts'],
+  ['jewelry', 'workshop', 8, { gold: 1, quartz: 2, silver: 1 }, { jewelry: 1 }, 'crafts'],
+  ['clock', 'workshop', 8, { brass: 2, gear: 3, glass: 1 }, { clock: 1 }, 'crafts'],
+  ['mirror', 'workshop', 5, { glass: 2, silver: 1 }, { mirror: 1 }, 'crafts'],
+  ['statue', 'workshop', 10, { stone: 12, bronze: 1 }, { statue: 1 }, 'crafts'],
+  ['drone', 'assemble', 12, { motor: 2, processor: 1, plastic: 2 }, { drone: 1 }, 'electronics2'],
+  ['armor', 'armory', 10, { steel: 3, titanium: 1 }, { armor: 1 }, 'heavy_arms'],
   ['final_matter', 'fabricate', 120, { fusion: 1, ai_core: 1, superalloy: 2, railgun: 1, gourmet: 2, lux_furniture: 1, gilded_vase: 1, fuel_rod: 1 }, { final_matter: 1 }, 'final'],
 ];
 const CRAFT_NAMES = {
   smelt: 'Furnaces', foundry: 'Foundry', refine: 'Refinery', assemble: 'Assemblers', fabricate: 'Quantum Fabricator',
   kiln: 'Kiln', wood: 'Sawmill', paper: 'Paper Mill', mill: 'Grain Mill', cook: 'Kitchen', brew: 'Brewery', textile: 'Textile Mill',
-  alloy: 'Alloy Forge', chem: 'Chemical Plant', munitions: 'Munitions Factory', armory: 'Armory', centrifuge: 'Centrifuge',
+  alloy: 'Alloy Forge', chem: 'Chemical Plant', munitions: 'Munitions Factory', armory: 'Armory', centrifuge: 'Centrifuge', workshop: 'Artisan Workshop',
 };
 /* Crops for Planter Boxes: seconds per harvest at ×1 */
 const CROPS = [
@@ -809,7 +866,7 @@ const BUILDINGS = {
     desc: 'Stores 6 MJ of surplus energy, releases up to 500 kW.' },
   pole: { name: 'Power Pole', kind: 'pole', size: 1, cost: 20, range: 8, cover: 3, color: '#b5874f', tech: 'automation',
     desc: 'Links to power within 8 tiles and powers buildings in a 7×7 area.' },
-  sell: { name: 'Market Hub', kind: 'sell', size: 3, cost: 1000, cap: 40, color: '#3fb56a',
+  sell: { name: 'Market Hub', kind: 'sell', size: 3, cost: 1000, cap: 40, color: '#3fb56a', art: 'hub',
     desc: 'Collects goods (not liquids) and ships a truck when full — or after 45 s idle, or when you press Ship now.' },
   lab: { name: 'Research Desk', kind: 'lab', size: 2, cost: 150, labRate: 1, rpMul: 1, power: 0, color: '#e6e1f5',
     desc: 'Studies ANY item you feed it and turns it into Research Points. Valuable items and science packs give far more.' },
@@ -886,6 +943,24 @@ const BUILDINGS = {
     desc: 'Links power across 18 tiles and powers an 18×18 area.' },
   liquid_depot: { name: 'Liquid Depot', kind: 'sell', liquid: true, size: 3, cost: 1500, cap: 80, color: '#3a9ad8', tech: 'liquids',
     desc: 'Buys liquids only (water, crude, petrol, juice…). Ships a tanker when full.' },
+  market_stall: { name: 'Market Stall', kind: 'sell', size: 2, cost: 300, cap: 20, priceMul: 0.9, shipTime: 3, color: '#c8943a', art: 'stall',
+    desc: 'A cheap roadside stall: small cart, pays 90% of market price. Great for a quick first income line.' },
+  trade_depot: { name: 'Trade Depot', kind: 'sell', size: 4, cost: 30000, cap: 160, priceMul: 1.1, shipTime: 3, color: '#2f8a5a', art: 'depot', tech: 'trade',
+    desc: 'Big warehouse: 160-item freight trucks at +10% prices.' },
+  export_terminal: { name: 'Export Terminal', kind: 'sell', size: 5, cost: 600000, cap: 600, priceMul: 1.25, shipTime: 2.5, color: '#3a6ad8', art: 'port', tech: 'export',
+    desc: 'Container port for the late game: ships 600 items at a time for +25%.' },
+  farmers_market: { name: 'Farmers Market', kind: 'sell', size: 3, cost: 2500, cap: 50, accept: ['food'], priceMul: 1.4, color: '#8ac048', art: 'farmers', tech: 'trade',
+    desc: 'Buys only food & crops — for +40%.' },
+  boutique: { name: 'Boutique', kind: 'sell', size: 3, cost: 12000, cap: 30, accept: ['luxury', 'pottery', 'wood'], priceMul: 1.45, color: '#d05a9a', art: 'boutique', tech: 'crafts',
+    desc: 'Buys crafts, pottery, furniture, books & luxury goods — for +45%.' },
+  arms_dealer: { name: 'Arms Dealer', kind: 'sell', size: 3, cost: 20000, cap: 40, accept: ['weapon'], priceMul: 1.4, color: '#6a6a4a', art: 'arms', tech: 'specialty',
+    desc: 'Buys only weapons & ammunition — for +40%.' },
+  tech_exchange: { name: 'Tech Exchange', kind: 'sell', size: 3, cost: 20000, cap: 40, accept: ['electronics', 'hightech', 'science', 'nuclear'], priceMul: 1.35, color: '#4a5ad8', art: 'tech', tech: 'specialty',
+    desc: 'Buys electronics, high-tech, science and nuclear goods — for +35%.' },
+  workshop: { name: 'Artisan Workshop', kind: 'machine', craft: 'workshop', size: 3, cost: 7000, speed: 1, power: 150, poll: 0.05, color: '#b8784a', tech: 'crafts',
+    desc: 'Master craftspeople make jewelry, clocks, mirrors and statues.' },
+  incinerator: { name: 'Incinerator', kind: 'void', size: 1, cost: 80, poll: 0.02, color: '#c84a2a', tech: 'storage1',
+    desc: 'Destroys anything fed into it. Handy for overflow and unwanted by-products.' },
   lab2: { name: 'Research Center', kind: 'lab', size: 3, cost: 8000, labRate: 6, rpMul: 1.3, power: 250, color: '#b8b0f0', tech: 'tier2',
     desc: 'Processes 6 items/s with a +30% research bonus.' },
 };
@@ -893,7 +968,7 @@ const BUILDINGS = {
 const FAMILIES = [
   { id: 'belt', cat: 'logistics', m: ['belt1', 'belt2', 'belt3', 'belt4'] },
   { id: 'tunnel', cat: 'logistics', m: ['tunnel', 'tunnel2'] },
-  { id: 'splitter', cat: 'logistics', m: ['splitter'] }, { id: 'merger', cat: 'logistics', m: ['merger'] },
+  { id: 'splitter', cat: 'logistics', m: ['splitter'] }, { id: 'incinerator', cat: 'logistics', m: ['incinerator'] }, { id: 'merger', cat: 'logistics', m: ['merger'] },
   { id: 'sorter', cat: 'logistics', m: ['sorter'] }, { id: 'overflow', cat: 'logistics', m: ['overflow'] },
   { id: 'junction', cat: 'logistics', m: ['junction'] }, { id: 'unloader', cat: 'logistics', m: ['unloader'] },
   { id: 'drill', cat: 'extraction', m: ['miner1', 'miner2', 'miner3', 'miner4', 'deep_drill', 'giga_drill'] },
@@ -909,11 +984,11 @@ const FAMILIES = [
   { id: 'brewery', cat: 'production', m: ['brewery'] }, { id: 'refinery', cat: 'production', m: ['refinery'] },
   { id: 'chem', cat: 'production', m: ['chem_plant'] }, { id: 'munitions', cat: 'production', m: ['munitions'] },
   { id: 'armory', cat: 'production', m: ['armory'] }, { id: 'centrifuge', cat: 'production', m: ['centrifuge'] },
-  { id: 'fabricator', cat: 'production', m: ['fabricator'] },
+  { id: 'workshop', cat: 'production', m: ['workshop'] }, { id: 'fabricator', cat: 'production', m: ['fabricator'] },
   { id: 'pole', cat: 'power', m: ['pole', 'substation'] }, { id: 'gen', cat: 'power', m: ['generator', 'gas_gen'] },
   { id: 'solar', cat: 'power', m: ['solar', 'solar2'] }, { id: 'wind', cat: 'power', m: ['wind'] },
   { id: 'battery', cat: 'power', m: ['battery_bank', 'accumulator'] }, { id: 'reactor', cat: 'power', m: ['reactor'] },
-  { id: 'sell', cat: 'economy', m: ['sell'] }, { id: 'liquid', cat: 'economy', m: ['liquid_depot'] },
+  { id: 'sell', cat: 'economy', m: ['market_stall', 'sell', 'trade_depot', 'export_terminal', 'farmers_market', 'boutique', 'arms_dealer', 'tech_exchange', 'liquid_depot'] },
   { id: 'lab', cat: 'economy', m: ['lab', 'lab2'] }, { id: 'storage', cat: 'economy', m: ['chest', 'silo'] },
   { id: 'scrubber', cat: 'economy', m: ['scrubber'] },
 ];
@@ -946,7 +1021,7 @@ const TECH_DEFS = [
   { id: 'kilns', tier: 1, name: 'Pottery', cost: { rp: 30, cash: 400 }, req: [], unlocks: ['kiln'], desc: 'Kilns fire clay (found near water) into pottery, tiles and bricks.' },
   { id: 'forestry', tier: 1, name: 'Forestry', cost: { rp: 40, cash: 500 }, req: [], unlocks: ['tree_farm', 'sawmill'], desc: 'Tree farms, sawmills, planks and charcoal.' },
   { id: 'agriculture', tier: 1, name: 'Agriculture', cost: { rp: 50, cash: 600 }, req: [], unlocks: ['planter', 'water_pump', 'mill', 'kitchen'], desc: 'Planter boxes, water pumps, flour and bread.' },
-  { id: 'handtools', tier: 1, name: 'Better Pickaxes', cost: { rp: 10, cash: 200 }, mul: 2.5, levels: 5, req: [], desc: '+100% hand-mining value per level.' },
+  { id: 'handtools', tier: 1, name: 'Better Pickaxes', cost: { rp: 10, cash: 200 }, mul: 2.5, levels: 5, req: [], desc: '+100% hand-mining value per level, and each level lets you hand-mine harder, pricier ores.' },
   { id: 'mining', tier: 1, name: 'Mining Efficiency', cost: { rp: 20, cash: 500 }, mul: 2.2, levels: 5, req: ['automation'], desc: '+20% drill speed per level.' },
   { id: 'market', tier: 1, name: 'Market Savvy', cost: { rp: 20, cash: 800 }, mul: 2.4, levels: 5, req: [], desc: '+10% sell prices per level.' },
   { id: 'tier2', tier: 1, milestone: true, name: 'Research Tier II', cost: { rp: 150, cash: 2000 }, req: ['automation'], unlocks: ['lab2'], desc: 'Opens Mechanized research and the Research Center.' },
@@ -963,6 +1038,7 @@ const TECH_DEFS = [
   { id: 'speed', tier: 2, name: 'Overclocking', cost: { rp: 150, cash: 2000 }, mul: 2.5, levels: 5, req: ['electric'], desc: '+15% machine speed per level.' },
   { id: 'storagecap', tier: 2, name: 'Dense Packing', cost: { rp: 120, cash: 1500 }, mul: 3, levels: 3, req: ['storage1'], desc: '+50% storage capacity per level.' },
   { id: 'logistics_hub', tier: 2, name: 'Freight Contracts', cost: { rp: 150, cash: 2500 }, mul: 2.2, levels: 5, req: [], desc: '+20% contract rewards and +10% hub capacity per level.' },
+  { id: 'trade', tier: 2, name: 'Trade Networks', cost: { rp: 300, cash: 4000 }, req: [], unlocks: ['trade_depot', 'farmers_market'], desc: 'Trade Depots and Farmers Markets.' },
   { id: 'tier3', tier: 2, milestone: true, name: 'Research Tier III', cost: { rp: 1200, cash: 15000 }, req: ['electric'], desc: 'Opens Advanced research.' },
 
   { id: 'circuits', tier: 3, name: 'Electronics', cost: { rp: 800, cash: 3000 }, req: [], desc: 'Circuits, motors, beams, lenses and green science.' },
@@ -974,6 +1050,8 @@ const TECH_DEFS = [
   { id: 'cuisine', tier: 3, name: 'Cuisine', cost: { rp: 1000, cash: 5000 }, req: ['liquids'], desc: 'Canned food.' },
   { id: 'pump2', tier: 3, name: 'Better Oil Jacks', cost: { rp: 1500, cash: 6000 }, req: ['petro'], unlocks: ['pump2'], desc: 'Pumpjack Mk2.' },
   { id: 'wind', tier: 3, name: 'Wind Power', cost: { rp: 800, cash: 4000 }, req: [], unlocks: ['wind'], desc: 'Wind turbines.' },
+  { id: 'crafts', tier: 3, name: 'Fine Crafts', cost: { rp: 1500, cash: 9000 }, req: ['blast', 'metallurgy'], unlocks: ['workshop', 'boutique'], desc: 'Artisan Workshop and Boutique: jars, jam, toys, jewelry, clocks, mirrors, statues.' },
+  { id: 'specialty', tier: 3, name: 'Specialty Buyers', cost: { rp: 2000, cash: 15000 }, req: ['trade'], unlocks: ['arms_dealer', 'tech_exchange'], desc: 'Arms Dealers and Tech Exchanges pay premiums.' },
   { id: 'tier4', tier: 3, milestone: true, name: 'Research Tier IV', cost: { rp: 8000, cash: 80000 }, req: ['circuits'], desc: 'Opens High-tech research.' },
 
   { id: 'logistics3', tier: 4, name: 'Logistics III', cost: { rp: 5000, cash: 12000 }, req: ['logistics2'], unlocks: ['belt3', 'tunnel2'], desc: 'Express conveyors and deep tunnels.' },
@@ -997,6 +1075,7 @@ const TECH_DEFS = [
   { id: 'arc', tier: 5, name: 'Arc Technology', cost: { rp: 60000, cash: 600000 }, req: ['assembler2'], unlocks: ['arc_furnace', 'assembler3'], desc: 'Arc Furnace and Assembler Mk3.' },
   { id: 'superalloy', tier: 5, name: 'Superalloys', cost: { rp: 80000, cash: 800000 }, req: ['titanium', 'deep'], desc: 'Iridium ingots and superalloy.' },
   { id: 'ai', tier: 5, name: 'Artificial Intelligence', cost: { rp: 120000, cash: 1.5e6 }, req: ['quantum', 'electronics2', 'superalloy', 'heavy_arms'], desc: 'AI cores and railguns.' },
+  { id: 'export', tier: 5, name: 'Global Export', cost: { rp: 50000, cash: 400000 }, req: ['trade'], unlocks: ['export_terminal'], desc: 'Export Terminals: 600-item container ships at +25%.' },
   { id: 'final', tier: 5, name: 'Final Matter', cost: { rp: 300000, cash: 5e6 }, req: ['ai', 'nuclear', 'luxury'], desc: 'The ultimate product: needs the final component of every industry.' },
 ];
 const SCIENCE = ['sci_red', 'sci_green', 'sci_blue', 'sci_purple'];
@@ -1047,6 +1126,10 @@ const GOAL_DEFS = [
   { id: 'g42', text: 'Reach $250K/min income', type: 'rate', n: 2.5e5, reward: 1e6 },
   { id: 'g43', text: 'Create Final Matter', type: 'produced', item: 'final_matter', n: 1, reward: 5e6 },
   { id: 'g44', text: 'Create 10 Final Matter', type: 'produced', item: 'final_matter', n: 10, reward: 2e7 },
+  { id: 'g45', text: 'Make 50 Jars of Jam', type: 'produced', item: 'jam', n: 50, reward: 1.5e4 },
+  { id: 'g46', text: 'Craft 25 Mantel Clocks', type: 'produced', item: 'clock', n: 25, reward: 3e4 },
+  { id: 'g47', text: 'Launch 100 Fireworks', type: 'produced', item: 'fireworks', n: 100, reward: 3e4 },
+  { id: 'g48', text: 'Build 20 Drones', type: 'produced', item: 'drone', n: 20, reward: 2.5e5 },
 ];
 
 /* ---------- Achievements (permanent, survive relocation) ---------- */
@@ -1087,6 +1170,12 @@ const ACH_DEFS = [
   ['final', '✨', 'The End of Industry', 'Create Final Matter', () => Stats.producedLife[II.final_matter] >= 1],
   ['relocate', '🚀', 'New Horizons', 'Relocate your factory', () => Rebirth.runs >= 1],
   ['handmine', '🤏', 'Elbow Grease', 'Hand-mine 500 times', () => Stats.handMined >= 500],
+  ['markets', '🏪', 'Shopping District', 'Own 4 different kinds of markets', () => BTYPES.filter(k => BUILDINGS[k].kind === 'sell' && Sim.countType(k) > 0).length >= 4],
+  ['artisan', '💍', 'Artisan', 'Craft jewelry, a clock, a mirror and a statue', () => ['jewelry', 'clock', 'mirror', 'statue'].every(i => Stats.producedLife[II[i]] > 0)],
+  ['fireworks', '🎆', 'Showtime', 'Make 50 fireworks', () => Stats.producedLife[II.fireworks] >= 50],
+  ['export', '🚢', 'Global Trader', 'Build an Export Terminal', () => Sim.countType('export_terminal') >= 1],
+  ['speed', '⏩', 'Time Is Money', 'Run the factory at 3× speed', () => Game.speed >= 3],
+  ['planner', '🧰', 'Master Planner', 'Upgrade 50 buildings with the upgrade planner', () => Stats.planned >= 50],
 ];
 
 /* ---------- Tutorial ---------- */
@@ -1450,13 +1539,17 @@ function buyUpgrade(e, k) {
   return true;
 }
 
+/* ---------- Hand-mining: harder/pricier ores need better pickaxes ---------- */
+function handTierOf(r) { const R = RES[r]; return R ? (R.hand === undefined ? 0 : R.hand) : -1; }
+function canHandMine(r) { const t = handTierOf(r); return t >= 0 && Research.level('handtools') >= t; }
+
 /* ---------- Statistics (per-item production/consumption, 5 min history) ---------- */
 const HIST = 300;
 const Stats = {
   prodSec: new Float64Array(NI), consSec: new Float64Array(NI),
   prodHist: new Float32Array(NI * HIST), consHist: new Float32Array(NI * HIST), head: 0,
   producedLife: new Float64Array(NI), consumedLife: new Float64Array(NI),
-  playTime: 0, cropsLife: 0, handMined: 0, upgradesBought: 0, caveBuilt: false,
+  playTime: 0, cropsLife: 0, handMined: 0, upgradesBought: 0, caveBuilt: false, burned: 0, planned: 0,
   prod(i, n) { this.prodSec[i] += n; this.producedLife[i] += n; if (!Dex.seen[i]) Dex.mark(i); },
   cons(i, n) { this.consSec[i] += n; this.consumedLife[i] += n; },
   second() {
@@ -1475,7 +1568,7 @@ const Stats = {
   reset() {
     this.prodSec.fill(0); this.consSec.fill(0); this.prodHist.fill(0); this.consHist.fill(0);
     this.producedLife.fill(0); this.consumedLife.fill(0); this.head = 0; this.playTime = 0;
-    this.cropsLife = 0; this.handMined = 0; this.caveBuilt = false;
+    this.cropsLife = 0; this.handMined = 0; this.caveBuilt = false; this.burned = 0; this.planned = 0;
   },
 };
 
@@ -1714,6 +1807,8 @@ function makeEntity(type, x, y, rot) {
   }
   return e;
 }
+const isGeneralHub = def => def.kind === 'sell' && !def.accept && !def.liquid;
+function sellAccepts(def, it) { const I = ITEMS[it]; if (def.accept) return !I.liquid && def.accept.includes(I.cat); return !!def.liquid === I.liquid; }
 const sellCap = e => Math.round(e.def.cap * (1 + 0.5 * bLv(e, 'cap')) * (e.def.liquid ? 1 : Upg.hubCap));
 const storeCap = e => Math.round(e.def.cap * Upg.storage * (1 + 0.5 * bLv(e, 'cap')));
 const labCap = e => 10 + e.def.labRate * 4;
@@ -1748,7 +1843,7 @@ function acceptItem(e, it, dir, carry) {
     }
     case 'machine': return machineIn(e, it);
     case 'sell': {
-      if (e.shipT > 0 || e.off || !!e.def.liquid !== ITEMS[it].liquid) return false;
+      if (e.shipT > 0 || e.off || !sellAccepts(e.def, it)) return false;
       if (e.invN >= sellCap(e)) return false;
       e.inv[it]++; e.invN++; Econ.hubReceived++;
       if (e.invN >= sellCap(e)) shipNow(e);
@@ -1766,6 +1861,7 @@ function acceptItem(e, it, dir, carry) {
       const f = e.def.fuels; if (!f || !f[ITEMS[it].id] || e.fuelN >= 10) return false;
       e.fq[e.fuelN++] = it; return true;
     }
+    case 'void': Stats.cons(it, 1); e.flash = performance.now(); Stats.burned++; if ((Stats.burned & 7) === 0) Pollution.add(e, e.def.poll * 8); return true;
     case 'farm': {
       if (it === II.water && e.water < 10) { e.water++; return true; }
       if (it === II.fertilizer && e.fert < 10) { e.fert++; return true; }
@@ -2069,11 +2165,11 @@ function tickUnloader(e) {
 /* ---------- Sellers: fill a truck, then ship ---------- */
 function shipNow(e) {
   if (e.invN <= 0 || e.shipT > 0) return 0;
-  const mult = 1 + 0.06 * bLv(e, 'prc');
+  const mult = (1 + 0.06 * bLv(e, 'prc')) * (e.def.priceMul || 1);
   let value = 0, n = 0;
   for (let i = 0; i < NI; i++) { const c = e.inv[i]; for (let k = 0; k < c; k++) value += Econ.sell(i, mult); n += c; e.inv[i] = 0; }
   e.invN = 0; e.idle = 0;
-  e.shipT = BALANCE.hubShipTime * Math.pow(0.82, bLv(e, 'ship'));
+  e.shipT = (e.def.shipTime || BALANCE.hubShipTime) * Math.pow(0.82, bLv(e, 'ship'));
   e.shipMax = e.shipT; e.lastShip = value; e.acc += value;
   if (e.def.liquid) Econ.tankers++; else Econ.shipments++;
   Bus.emit('shipped', e, value, n);
@@ -2195,7 +2291,7 @@ const Power = {
 };
 
 /* ---------- Simulation core ---------- */
-const KIND_LISTS = ['belt', 'tunnel', 'router', 'junction', 'miner', 'farm', 'machine', 'sell', 'lab', 'storage', 'unloader', 'gen', 'solar', 'battery', 'pole', 'scrubber'];
+const KIND_LISTS = ['belt', 'tunnel', 'router', 'junction', 'miner', 'farm', 'machine', 'sell', 'lab', 'storage', 'unloader', 'gen', 'solar', 'battery', 'pole', 'scrubber', 'void'];
 const Sim = {
   tick: 0, time: 0, ents: new Map(), nextId: 1, dirty: true, daylight: 1, paused: false,
   lists: {}, typeCount: {}, kindCount: {},
@@ -2388,6 +2484,24 @@ const Goals = {
 /* ---------- Construction rules, placement, undo/redo ---------- */
 const CHK = { ok: false, reason: '', replace: null, cost: 0, same: false };
 const Build = {
+  // replace e in place with its next tier, keeping config & contents; returns {ent,cost}, null if unaffordable
+  upgradeEnt(e) {
+    const to = e.def.upgrade, up = BUILDINGS[to];
+    if (!to || !up || !this.unlocked(to)) return false;
+    const kit = (this.kit[to] | 0) > 0, refund = e.kit ? 0 : e.paid * BALANCE.refundRate, cost = (kit ? 0 : up.cost) - refund;
+    if (Econ.cash < cost) return null;
+    const snap = snapEnt(e), wasSel = UI.sel === e;
+    History.recDel(snap);
+    this.demolish(e, true);
+    const n = this.place(to, snap.x, snap.y, snap.r, { mode: snap.m });
+    if (!n) return false;
+    const cfg = Object.assign({}, snap); delete cfg.p; delete cfg.k; delete cfg.t; delete cfg.u;
+    applySnap(n, cfg);
+    if (History.cur) { History.cur.add = History.cur.add.filter(a => a.x !== n.x || a.y !== n.y); History.cur.add.push(snapEnt(n)); }
+    Render.burst((n.x + n.w / 2) * TILE, (n.y + n.h / 2) * TILE, '#ffd54a', 8 + n.w * 4);
+    if (wasSel) UI.inspect(n);
+    return { ent: n, cost };
+  },
   kit: {},
   unlocked(type) { return Research.has(BUILDINGS[type].tech); },
   price(type) { return (this.kit[type] | 0) > 0 ? 0 : BUILDINGS[type].cost; },
@@ -2468,7 +2582,7 @@ const Build = {
     if (!silent) Bus.emit('removed', e);
   },
   canDemolish(e) {
-    if (e.type === 'sell' && Sim.countType('sell') <= 1) return 'Can’t remove your last Market Hub';
+    if (isGeneralHub(e.def)) { let n = 0; for (const k of BTYPES) if (isGeneralHub(BUILDINGS[k])) n += Sim.countType(k); if (n <= 1) return 'Can’t remove your last general market'; }
     return '';
   },
 };
@@ -2699,7 +2813,7 @@ const Input = {
     const g = this.g;
     if (!g || g.id !== e.pointerId) return;
     if (g.long) clearTimeout(g.long);
-    this.g = null;
+    this.g = null; Tools.shift = !!e.shiftKey;
     if (cancel) { if (g.mode === 'tool') Tools.cancelDrag(); return; }
     if (g.mode === 'tool') Tools.up();
     else if (!g.moved && g.mode !== 'done') { if (g.btn === 2) Tools.rightClick(); else if (g.btn === 0 || g.touch) Tools.click(); }
@@ -2716,6 +2830,8 @@ const Input = {
       if (k === 'z') { e.preventDefault(); if (e.shiftKey) History.doRedo(); else History.doUndo(); }
       else if (k === 'y') { e.preventDefault(); History.doRedo(); }
       else if (k === 's') { e.preventDefault(); Save.autosave(); UI.toast('Game saved', 'good'); }
+      else if (k === 'c') { const s = World.entAt(this.tx, this.ty) || (UI.sel && !UI.sel.dead ? UI.sel : null); if (s) { e.preventDefault(); Tools.copySettings(s); } }
+      else if (k === 'v') { const s = World.entAt(this.tx, this.ty) || (UI.sel && !UI.sel.dead ? UI.sel : null); if (s) { e.preventDefault(); Tools.pasteSettings(s); } }
       return;
     }
     if (e.altKey) return;
@@ -2739,7 +2855,13 @@ const Input = {
       case 'o': UI.openModal('m-settings'); break;
       case 'm': UI.toggleMinimap(); break;
       case 'f3': e.preventDefault(); Settings.showFps = !Settings.showFps; Settings.save(); break;
-      case ' ': e.preventDefault(); Cam.tz = 1; Cam.ax = Cam.W / 2; Cam.ay = Cam.H / 2; break;
+      case ' ': e.preventDefault(); Game.togglePause(); break;
+      case '.': case '>': Game.cycleSpeed(1); break;
+      case ',': case '<': Game.cycleSpeed(-1); break;
+      case 'z': Cam.tz = 1; Cam.ax = Cam.W / 2; Cam.ay = Cam.H / 2; break;
+      case 'u': Tools.set(Tools.mode === 'upgrade' ? 'select' : 'upgrade'); break;
+      case 'n': UI.nextAlert(); break;
+      case '/': e.preventDefault(); { const s = $('build-search'); s.focus(); s.select(); } break;
     }
   },
 };
@@ -2747,7 +2869,7 @@ const Input = {
 /* ---------- Tool state machine: select | build | demolish | copy | paste ---------- */
 const LP = { x: new Int16Array(1024), y: new Int16Array(1024), r: new Uint8Array(1024), n: 0 };
 const Tools = {
-  mode: 'select', type: null, rot: 0, drag: null, bp: null, handT: 0, ghostReason: '',
+  mode: 'select', type: null, rot: 0, drag: null, bp: null, handT: 0, ghostReason: '', shift: false, clip: null,
   set(mode, type) {
     if (mode === 'build' && (!type || !BUILDINGS[type])) mode = 'select';
     if (mode === 'build' && !Build.unlocked(type)) { UI.toast(`Locked — research ${TECH[BUILDINGS[type].tech].name}`, 'bad'); Sfx.play('error'); return; }
@@ -2776,7 +2898,7 @@ const Tools = {
   down() {
     const tx = Input.tx, ty = Input.ty;
     switch (this.mode) {
-      case 'build': case 'demolish': case 'copy': this.drag = { sx: tx, sy: ty, cx: tx, cy: ty }; return true;
+      case 'build': case 'demolish': case 'copy': case 'upgrade': this.drag = { sx: tx, sy: ty, cx: tx, cy: ty }; return true;
       case 'paste': return true;
     }
     return false;
@@ -2789,19 +2911,68 @@ const Tools = {
       case 'demolish': if (d) this.commitDemolish(d); break;
       case 'copy': if (d) this.commitCopy(d); break;
       case 'paste': this.commitPaste(); break;
+      case 'upgrade': if (d) this.commitUpgrade(d); break;
     }
   },
   click() {
     const tx = Input.tx, ty = Input.ty, d = { sx: tx, sy: ty, cx: tx, cy: ty };
     switch (this.mode) {
-      case 'select': this.selectAt(tx, ty); break;
+      case 'select': { const e = this.shift && World.entAt(tx, ty); if (e && this.clip) { this.pasteSettings(e); break; } this.selectAt(tx, ty); break; }
+      case 'upgrade': this.commitUpgrade(d); break;
       case 'build': this.commitBuild(d); break;
       case 'demolish': this.commitDemolish(d); break;
       case 'copy': UI.toast(Input.touchUsed ? 'Enable ✎ draw mode, then drag a box to copy' : 'Drag a box to copy', 'info'); break;
       case 'paste': this.commitPaste(); break;
     }
   },
-  rightClick() { if (this.mode !== 'select') this.set('select'); else UI.closeInspector(); },
+  rightClick() {
+    const e = this.shift && this.mode === 'select' && World.entAt(Input.tx, Input.ty);
+    if (e) { this.copySettings(e); return; }
+    if (this.mode !== 'select') this.set('select'); else UI.closeInspector();
+  },
+  /* ---------- settings clipboard (recipe / filter / on-off) ---------- */
+  settingsOf(e) {
+    const k = e.def.kind, o = { kind: k, craft: e.def.craft || '', name: e.def.name, off: !!e.off };
+    if (k === 'machine') o.recipe = e.recipe;
+    else if (k === 'storage' || k === 'router' || k === 'unloader') o.filter = e.filter;
+    else if (k !== 'sell' && k !== 'farm') return null;
+    return o;
+  },
+  copySettings(e) {
+    const o = this.settingsOf(e);
+    if (!o) { UI.toast(`${esc(e.def.name)} has no settings to copy`, 'info'); return; }
+    this.clip = o; Sfx.play('click');
+    const what = o.recipe !== undefined ? (o.recipe >= 0 ? ITEMS[RECIPES[o.recipe].out[0][0]].name : 'no recipe') : o.filter !== undefined ? (o.filter >= 0 ? ITEMS[o.filter].name + ' filter' : 'no filter') : (o.off ? 'disabled' : 'enabled');
+    UI.toast(`📋 Copied settings: <b>${esc(what)}</b> — Shift+click (or Ctrl+V) another ${esc(o.name)} to paste`, 'info');
+  },
+  pasteSettings(e) {
+    const o = this.clip, k = e.def.kind;
+    if (!o) { UI.toast('Copy settings first: Shift+right-click (or Ctrl+C) a building', 'info'); return false; }
+    if (o.kind !== k || (k === 'machine' && o.craft !== e.def.craft && o.recipe >= 0 && RECIPES[o.recipe].craft !== e.def.craft)) { UI.toast(`Can't paste ${esc(o.name)} settings onto ${esc(e.def.name)}`, 'bad'); Sfx.play('error'); return false; }
+    if (o.recipe !== undefined && o.recipe !== e.recipe && (o.recipe < 0 || RECIPES[o.recipe].craft === e.def.craft) && !e.def.auto) setRecipe(e, o.recipe);
+    if (o.filter !== undefined) e.filter = o.filter;
+    e.off = o.off; Sim.touch(e);
+    e.born = Render.now - 200; Sfx.play('place');
+    if (UI.sel === e) UI.renderInspector();
+    return true;
+  },
+  /* ---------- upgrade planner: box → in-place tier upgrades ---------- */
+  upgradable(e) { const to = e.def.upgrade; return !!(to && BUILDINGS[to] && Build.unlocked(to)); },
+  commitUpgrade(d) {
+    const { set } = this.boxEnts(d, false);
+    const list = [...set].filter(e => this.upgradable(e));
+    if (!list.length) { UI.toast(set.size ? 'Nothing there can be upgraded yet' : 'Drag a box over buildings to upgrade them', 'info'); return; }
+    History.begin();
+    let n = 0, spent = 0, broke = false;
+    for (const e of list) {
+      const r = Build.upgradeEnt(e);
+      if (r === null) { broke = true; break; }
+      if (r) { n++; spent += r.cost; }
+    }
+    History.end();
+    if (n) { Sfx.play('research'); Stats.planned += n; UI.toast(`⬆ Upgraded ${n} building${n > 1 ? 's' : ''} for ${fmtMoney(Math.max(0, spent))}${broke ? ' — ran out of cash' : ''}`, 'good'); }
+    else if (broke) { UI.toast('Not enough cash to upgrade', 'bad'); Sfx.play('error'); }
+  },
   longPress() { const e = World.entAt(Input.tx, Input.ty); if (e) { UI.inspect(e); Sfx.play('click'); } },
   cancelDrag() { this.drag = null; },
 
@@ -2815,7 +2986,12 @@ const Tools = {
     const now = performance.now();
     if (now - this.handT < BALANCE.handMineCooldown * 1000) return;
     this.handT = now;
-    const it = RES_ITEM[World.res[ty * MAP_W + tx]];
+    const r = World.res[ty * MAP_W + tx], it = RES_ITEM[r];
+    if (!canHandMine(r)) {
+      const t = handTierOf(r);
+      UI.toast(t < 0 ? `💧 ${esc(ITEMS[it].name)} can’t be dug by hand — build a pump` : `⛏ ${esc(ITEMS[it].name)} is too hard — needs <b>Better Pickaxes Lv ${t}</b> (research). Use a drill!`, 'bad');
+      Sfx.play('error'); this.handT = now + 600; return;
+    }
     const v = VALUE[it] * Upg.sell * Upg.hand;
     Econ.earn(v); Stats.prod(it, 1); Stats.handMined++;
     Render.burst((tx + 0.5) * TILE, (ty + 0.5) * TILE, ITEMS[it].color, 7);
@@ -2949,7 +3125,7 @@ const Tools = {
    canvases at boot (buildings, belts, items); only animated overlays are
    drawn per frame. Light comes from the top-left; shadows fall bottom-right.
    ===================================================================== */
-const SPR = 64, PAD = 14, BS = 64, BFRAMES = 16;
+const SPR = 64, PAD = 16, BS = 64, BFRAMES = 16, HQ = 1.5; // sprites are painted in 64px/tile units, rasterized at HQ× for crisp close-ups
 // mip(img, px): cached half-size copies so heavy downscaling never happens per frame
 function mip(img, px) {
   while (img.width > px * 1.6 && img.width > 12) {
@@ -2969,27 +3145,42 @@ function rr(c, x, y, w, h, r) {
   c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
 }
 function panel(c, x, y, w, h, r, col, lw = 2) {
-  const g = c.createLinearGradient(x, y, x + w * 0.35, y + h);
-  g.addColorStop(0, shade(col, 0.16)); g.addColorStop(1, shade(col, -0.2));
+  // lit metal/painted panel: 3-stop body gradient, diagonal sheen, bottom occlusion, bevel rims
+  const g = c.createLinearGradient(x, y, x + w * 0.4, y + h);
+  g.addColorStop(0, shade(col, 0.22)); g.addColorStop(0.45, col); g.addColorStop(1, shade(col, -0.3));
   rr(c, x, y, w, h, r); c.fillStyle = g; c.fill();
-  c.lineWidth = lw; c.strokeStyle = shade(col, -0.5); c.stroke();
-  rr(c, x + 2.5, y + 2.5, w - 5, h - 5, Math.max(1, r - 2)); c.lineWidth = 1.2; c.strokeStyle = 'rgba(255,255,255,0.16)'; c.stroke();
+  c.save(); rr(c, x, y, w, h, r); c.clip();
+  const sh = c.createLinearGradient(x, y, x + w, y + h);
+  sh.addColorStop(0.12, 'rgba(255,255,255,0)'); sh.addColorStop(0.28, 'rgba(255,255,255,0.11)'); sh.addColorStop(0.4, 'rgba(255,255,255,0)');
+  c.fillStyle = sh; c.fillRect(x, y, w, h);
+  const bs = c.createLinearGradient(0, y + h - 7, 0, y + h); bs.addColorStop(0, 'rgba(0,0,0,0)'); bs.addColorStop(1, 'rgba(0,0,0,0.3)');
+  c.fillStyle = bs; c.fillRect(x, y + h - 7, w, 7);
+  c.lineWidth = 2.2; c.strokeStyle = 'rgba(255,255,255,0.24)';
+  c.beginPath(); c.moveTo(x + 2.5, y + h - r - 2); c.lineTo(x + 2.5, y + 2.5); c.lineTo(x + w - r - 2, y + 2.5); c.stroke();
+  c.strokeStyle = 'rgba(0,0,0,0.22)'; c.beginPath(); c.moveTo(x + w - 2.5, y + r + 2); c.lineTo(x + w - 2.5, y + h - 2.5); c.lineTo(x + r + 2, y + h - 2.5); c.stroke();
+  c.restore();
+  rr(c, x, y, w, h, r); c.lineWidth = lw; c.strokeStyle = shade(col, -0.58); c.stroke();
 }
 function inset(c, x, y, w, h, r, col) {
   rr(c, x, y, w, h, r); c.fillStyle = col; c.fill();
-  const g = c.createLinearGradient(x, y, x, y + h); g.addColorStop(0, 'rgba(0,0,0,0.45)'); g.addColorStop(0.35, 'rgba(0,0,0,0)');
+  const g = c.createLinearGradient(x, y, x, y + h); g.addColorStop(0, 'rgba(0,0,0,0.5)'); g.addColorStop(0.35, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(255,255,255,0.05)');
   c.fillStyle = g; c.fill();
-  c.lineWidth = 1; c.strokeStyle = 'rgba(255,255,255,0.08)'; c.stroke();
+  c.lineWidth = 1; c.strokeStyle = 'rgba(0,0,0,0.5)'; c.stroke();
+  c.save(); rr(c, x, y, w, h, r); c.clip(); c.strokeStyle = 'rgba(255,255,255,0.14)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x + r, y + h - 0.5); c.lineTo(x + w - r, y + h - 0.5); c.stroke(); c.restore();
 }
 function bolts(c, x, y, w, h, d, col) {
-  c.fillStyle = col;
-  for (const [bx, by] of [[x + d, y + d], [x + w - d, y + d], [x + d, y + h - d], [x + w - d, y + h - d]]) { c.beginPath(); c.arc(bx, by, 2.2, 0, 6.29); c.fill(); }
+  for (const [bx, by] of [[x + d, y + d], [x + w - d, y + d], [x + d, y + h - d], [x + w - d, y + h - d]]) {
+    c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.arc(bx + 0.6, by + 0.8, 2.6, 0, 6.29); c.fill();
+    c.fillStyle = col; c.beginPath(); c.arc(bx, by, 2.3, 0, 6.29); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.55)'; c.beginPath(); c.arc(bx - 0.7, by - 0.7, 0.9, 0, 6.29); c.fill();
+  }
 }
 function circle(c, x, y, r, fill, stroke, lw) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); if (fill) { c.fillStyle = fill; c.fill(); } if (stroke) { c.lineWidth = lw || 1.5; c.strokeStyle = stroke; c.stroke(); } }
 function ball(c, x, y, r, col) {
   const g = c.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
   g.addColorStop(0, shade(col, 0.45)); g.addColorStop(0.6, col); g.addColorStop(1, shade(col, -0.4));
   circle(c, x, y, r, g, shade(col, -0.55), 1.5);
+  c.fillStyle = 'rgba(255,255,255,0.45)'; c.beginPath(); c.ellipse(x - r * 0.38, y - r * 0.45, r * 0.26, r * 0.14, -0.6, 0, 6.29); c.fill();
 }
 function stripes(c, x, y, w, h, a, b, sw = 8) {
   c.save(); rr(c, x, y, w, h, 3); c.clip(); c.fillStyle = a; c.fillRect(x, y, w, h); c.strokeStyle = b; c.lineWidth = sw / 2;
@@ -3316,6 +3507,118 @@ Object.assign(BodyArt, {
     for (const [x, y] of [[16, 16], [S - 16, 16], [16, S - 16], [S - 16, S - 16]]) circle(c, x, y, 6, '#cfe7f2', '#6f8a96', 1.5);
     ball(c, S / 2, S / 2, 12, '#9aa6b8');
   },
+  // ---- market hub variants (def.art) ----
+  m_stall(c, S, def) {
+    panel(c, 4, 12, S - 8, S - 16, 6, '#8a5a30');
+    for (let k = 0; k < 5; k++) { c.fillStyle = shade('#8a5a30', k % 2 ? -0.08 : 0.05); c.fillRect(8, 16 + k * 10, S - 16, 9); }
+    inset(c, 12, S * 0.5, S - 24, S * 0.34, 4, '#3a2412');
+    for (let k = 0; k < 4; k++) ball(c, 22 + k * ((S - 44) / 3), S * 0.62, 6, ['#e04a3a', '#f0c040', '#6ab04a', '#e08a30'][k]);
+    for (let k = 0; k < 3; k++) { rr(c, 20 + k * ((S - 40) / 2) - 7, S * 0.72, 14, 8, 2); c.fillStyle = '#c8a070'; c.fill(); c.strokeStyle = '#5a3a1a'; c.lineWidth = 1; c.stroke(); }
+    // striped awning
+    c.save(); c.beginPath(); c.moveTo(2, 4); c.lineTo(S - 2, 4); c.lineTo(S - 2, 26); for (let k = 6; k >= 0; k--) c.quadraticCurveTo(2 + (k + 0.5) * (S - 4) / 6.5, 34, 2 + k * (S - 4) / 6.5, 26); c.closePath(); c.clip();
+    stripes(c, 0, 0, S, 36, '#f4f1e6', def.color, 16); const g = c.createLinearGradient(0, 4, 0, 34); g.addColorStop(0, 'rgba(255,255,255,0.25)'); g.addColorStop(1, 'rgba(0,0,0,0.25)'); c.fillStyle = g; c.fillRect(0, 0, S, 36); c.restore();
+    c.strokeStyle = '#5a3a1a'; c.lineWidth = 2; c.strokeRect(2, 4, S - 4, 22);
+    circle(c, S - 20, S - 16, 9, '#ffe68a', '#7a5a10', 2); c.fillStyle = '#6b4c0a'; c.font = 'bold 13px system-ui,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('$', S - 20, S - 15);
+  },
+  m_depot(c, S, def) {
+    panel(c, 5, 5, S - 10, S - 10, 12, def.color);
+    for (const [x, y, w, h] of [[S / 2 - 24, 5, 48, 12], [S / 2 - 24, S - 17, 48, 12], [5, S / 2 - 24, 12, 48], [S - 17, S / 2 - 24, 12, 48]]) inset(c, x, y, w, h, 3, '#10281a');
+    const cols = ['#c8443a', '#3a7ac8', '#e0a030', '#4aa05a', '#8a5ac0', '#d8d4c8'];
+    for (let r = 0; r < 3; r++) for (let q = 0; q < 3; q++) {
+      const x = 30 + q * 66, y = 30 + r * 66, cl = cols[(r * 3 + q) % 6];
+      if (r === 1 && q === 1) continue;
+      panel(c, x, y, 62, 30, 3, cl, 1.5); c.strokeStyle = 'rgba(0,0,0,0.3)'; c.lineWidth = 1.5; for (let k = 1; k < 6; k++) { c.beginPath(); c.moveTo(x + k * 10.3, y + 4); c.lineTo(x + k * 10.3, y + 26); c.stroke(); }
+      if (r < 2) { panel(c, x + 6, y + 32, 50, 26, 3, shade(cl, -0.1), 1.5); }
+    }
+    const g = c.createRadialGradient(S / 2 - 10, S / 2 - 10, 4, S / 2, S / 2, 40);
+    g.addColorStop(0, '#ffe68a'); g.addColorStop(1, '#c9971f'); circle(c, S / 2, S / 2, 32, g, '#7a5a10', 3);
+    c.fillStyle = '#6b4c0a'; c.font = 'bold 42px system-ui,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('$', S / 2, S / 2 + 2);
+  },
+  m_port(c, S, def) {
+    // concrete quay + water basin + crane + container stacks
+    panel(c, 4, 4, S - 8, S - 8, 10, '#8a9098');
+    const wg = c.createLinearGradient(0, S * 0.58, 0, S - 16); wg.addColorStop(0, '#2a6aa8'); wg.addColorStop(1, '#1a3f6a');
+    inset(c, 16, S * 0.58, S - 32, S * 0.42 - 20, 6, '#2a5a90'); c.fillStyle = wg; rr(c, 18, S * 0.58 + 2, S - 36, S * 0.42 - 24, 5); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,0.18)'; c.lineWidth = 1.5; for (let k = 0; k < 6; k++) { const y = S * 0.62 + k * 14; c.beginPath(); c.moveTo(30 + (k % 2) * 20, y); c.lineTo(80 + (k % 2) * 20, y); c.moveTo(S - 120, y + 6); c.lineTo(S - 70, y + 6); c.stroke(); }
+    // ship
+    c.save(); c.translate(S / 2, S * 0.8); rr(c, -S * 0.34, -22, S * 0.68, 44, 20); c.fillStyle = '#2a2f38'; c.fill(); c.strokeStyle = '#101216'; c.lineWidth = 2; c.stroke();
+    c.fillStyle = '#c84a3a'; c.fillRect(-S * 0.33, 12, S * 0.66, 6);
+    const cc = ['#c8443a', '#3a7ac8', '#e0a030', '#4aa05a'];
+    for (let q = 0; q < 8; q++) { c.fillStyle = cc[q % 4]; c.fillRect(-S * 0.28 + q * 26, -16, 24, 26); c.strokeStyle = 'rgba(0,0,0,0.35)'; c.strokeRect(-S * 0.28 + q * 26, -16, 24, 26); }
+    rr(c, S * 0.24, -18, 22, 30, 3); c.fillStyle = '#e8e8e8'; c.fill(); c.restore();
+    // stacks on quay
+    for (let r = 0; r < 2; r++) for (let q = 0; q < 6; q++) { const cl = cc[(q + r) % 4]; panel(c, 20 + q * ((S - 40) / 6), 22 + r * 34, (S - 40) / 6 - 4, 30, 2, cl, 1.2); }
+    // crane gantry
+    c.strokeStyle = '#e0b030'; c.lineWidth = 6; c.beginPath(); c.moveTo(24, S * 0.52); c.lineTo(S - 24, S * 0.52); c.stroke();
+    c.strokeStyle = '#8a6a10'; c.lineWidth = 2; for (let k = 0; k < 12; k++) { const x = 30 + k * ((S - 60) / 12); c.beginPath(); c.moveTo(x, S * 0.52 - 3); c.lineTo(x + 10, S * 0.52 + 3); c.stroke(); }
+    panel(c, S * 0.44, S * 0.47, 36, 22, 3, '#f0c040', 1.5);
+    circle(c, S - 34, 104, 14, '#ffe68a', '#7a5a10', 2.5); c.fillStyle = '#6b4c0a'; c.font = 'bold 20px system-ui,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('$', S - 34, 105);
+  },
+  m_farmers(c, S, def) {
+    panel(c, 5, 5, S - 10, S - 10, 10, '#6a4a2a');
+    for (let k = 0; k < 9; k++) { c.fillStyle = k % 2 ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.05)'; c.fillRect(9, 9 + k * ((S - 18) / 9), S - 18, (S - 18) / 9); }
+    const prod = [['#e04a3a', '#f06a5a'], ['#f0c040', '#ffe070'], ['#6ab04a', '#8ad06a'], ['#a03ac0', '#c05ae0'], ['#e08a30', '#f0aa50'], ['#c8a060', '#e0c080']];
+    for (let q = 0; q < 6; q++) {
+      const x = 18 + (q % 3) * ((S - 36) / 3), y = 46 + ((q / 3) | 0) * ((S - 70) / 2), w = (S - 36) / 3 - 8;
+      inset(c, x, y, w, 50, 4, '#4a3018');
+      for (let k = 0; k < 7; k++) ball(c, x + 8 + (k % 4) * ((w - 16) / 3), y + 14 + ((k / 4) | 0) * 18, 6, prod[q][k % 2]);
+    }
+    c.save(); c.beginPath(); rr(c, 8, 8, S - 16, 30, 6); c.clip(); stripes(c, 8, 8, S - 16, 30, '#f4f1e6', def.color, 18); c.restore();
+    c.strokeStyle = '#3a5a1a'; c.lineWidth = 2; rr(c, 8, 8, S - 16, 30, 6); c.stroke();
+    c.fillStyle = '#2a4a10'; c.font = 'bold 15px system-ui,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('FRESH', S / 2, 24);
+  },
+  m_boutique(c, S, def) {
+    panel(c, 5, 5, S - 10, S - 10, 14, '#f0e4ec');
+    inset(c, 16, 44, S - 32, S - 70, 8, '#3a1a2e');
+    const g = c.createLinearGradient(0, 44, 0, S - 26); g.addColorStop(0, 'rgba(255,220,240,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0.02)'); c.fillStyle = g; rr(c, 18, 46, S - 36, S - 74, 7); c.fill();
+    for (let k = 0; k < 3; k++) { const x = 40 + k * ((S - 80) / 2); ball(c, x, S * 0.6, 10, ['#f5d060', '#dff4ff', '#d05a9a'][k]); rr(c, x - 12, S * 0.6 + 10, 24, 16, 3); c.fillStyle = '#e8d8e0'; c.fill(); c.strokeStyle = '#7a4a6a'; c.lineWidth = 1.2; c.stroke(); }
+    // scalloped awning
+    c.beginPath(); c.moveTo(8, 10); c.lineTo(S - 8, 10); c.lineTo(S - 8, 30); for (let k = 7; k >= 0; k--) c.arc(8 + (k + 0.5) * (S - 16) / 8, 30, (S - 16) / 16, 0, Math.PI); c.closePath();
+    c.fillStyle = def.color; c.fill(); c.strokeStyle = shade(def.color, -0.5); c.lineWidth = 2; c.stroke();
+    c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(10, 12, S - 20, 5);
+    c.fillStyle = '#fff'; c.font = 'italic bold 16px Georgia,serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Boutique', S / 2, 22);
+  },
+  m_arms(c, S, def) {
+    panel(c, 5, 5, S - 10, S - 10, 6, '#5a5a42');
+    stripes(c, 8, 8, S - 16, 12, '#e0b020', '#1a1a14', 12); stripes(c, 8, S - 20, S - 16, 12, '#e0b020', '#1a1a14', 12);
+    inset(c, 16, 28, S - 32, S - 56, 4, '#1e2016');
+    for (let k = 0; k < 3; k++) { const y = 42 + k * 30; c.fillStyle = '#3a3a2a'; c.fillRect(22, y + 12, S - 44, 4); c.save(); c.translate(S / 2, y); c.fillStyle = '#9aa0a8'; c.fillRect(-S * 0.3, -2, S * 0.5, 5); c.fillStyle = '#6a4a2a'; c.fillRect(S * 0.12, -3, 22, 9); c.fillStyle = '#2a2f36'; c.fillRect(-4, 2, 5, 8); c.restore(); }
+    ball(c, S - 26, S - 34, 8, '#b87333');
+    c.strokeStyle = '#b0b090'; c.lineWidth = 2.5; c.beginPath(); c.arc(28, S - 36, 10, 0, 6.29); c.moveTo(18, S - 36); c.lineTo(38, S - 36); c.moveTo(28, S - 46); c.lineTo(28, S - 26); c.stroke();
+  },
+  m_tech(c, S, def) {
+    panel(c, 5, 5, S - 10, S - 10, 14, '#2a3048');
+    inset(c, 14, 14, S - 28, S * 0.42, 6, '#0a1020');
+    // stock ticker screen
+    c.strokeStyle = '#4af08a'; c.lineWidth = 2.5; c.beginPath(); for (let k = 0; k <= 12; k++) { const x = 22 + k * ((S - 44) / 12), y = 14 + S * 0.32 - hash2(k, 3, 9) * S * 0.2 - k * 2.2; if (k) c.lineTo(x, y); else c.moveTo(x, y); } c.stroke();
+    c.fillStyle = 'rgba(74,240,138,0.12)'; c.lineTo(S - 22, 14 + S * 0.4); c.lineTo(22, 14 + S * 0.4); c.fill();
+    for (let k = 0; k < 4; k++) { c.fillStyle = k % 2 ? '#e04a4a' : '#4af08a'; c.fillRect(22 + k * 36, 20, 26, 4); }
+    for (let q = 0; q < 4; q++) { const x = 18 + q * ((S - 36) / 4); panel(c, x, S * 0.62, (S - 36) / 4 - 6, S * 0.3, 3, '#3a4058', 1.2); for (let k = 0; k < 4; k++) { c.fillStyle = (q + k) % 3 ? '#4a8af0' : '#f0c040'; c.fillRect(x + 6, S * 0.65 + k * 10, 3, 3); } }
+    circle(c, S / 2, S * 0.56, 5, def.color, '#101428', 2);
+  },
+  workshop(c, S, def) {
+    panel(c, 5, 5, S - 10, S - 10, 10, '#7a5a3a');
+    for (let k = 0; k < 8; k++) { c.fillStyle = k % 2 ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.04)'; c.fillRect(9, 9 + k * ((S - 18) / 8), S - 18, (S - 18) / 8); }
+    // workbench
+    panel(c, 16, S * 0.46, S - 32, S * 0.3, 4, '#a8784a');
+    c.fillStyle = 'rgba(0,0,0,0.25)'; for (let k = 1; k < 5; k++) c.fillRect(16 + k * (S - 32) / 5, S * 0.46 + 4, 1.5, S * 0.3 - 8);
+    ball(c, S * 0.3, S * 0.55, 7, '#f5d060'); ball(c, S * 0.5, S * 0.58, 6, '#dff4ff');
+    // anvil
+    c.fillStyle = '#3a3f48'; c.beginPath(); c.moveTo(S * 0.6, S * 0.52); c.lineTo(S * 0.84, S * 0.52); c.lineTo(S * 0.8, S * 0.58); c.lineTo(S * 0.76, S * 0.58); c.lineTo(S * 0.78, S * 0.66); c.lineTo(S * 0.66, S * 0.66); c.lineTo(S * 0.68, S * 0.58); c.lineTo(S * 0.62, S * 0.58); c.closePath(); c.fill(); c.strokeStyle = '#15181c'; c.lineWidth = 1.5; c.stroke();
+    // tool wall
+    inset(c, 16, 14, S - 32, S * 0.26, 4, '#4a3420');
+    c.lineCap = 'round'; for (let k = 0; k < 6; k++) { const x = 28 + k * ((S - 56) / 5); c.strokeStyle = '#8a929a'; c.lineWidth = 3; c.beginPath(); c.moveTo(x, 22); c.lineTo(x, 22 + S * 0.14); c.stroke(); c.strokeStyle = '#6a4a2a'; c.lineWidth = 4; c.beginPath(); c.moveTo(x, 22 + S * 0.08); c.lineTo(x, 22 + S * 0.16); c.stroke(); } c.lineCap = 'butt';
+    bolts(c, 8, 8, S - 16, S - 16, 5, '#c8b090');
+  },
+  incinerator(c, S, def) {
+    panel(c, 4, 4, S - 8, S - 8, 10, '#4a3a36');
+    const g = c.createRadialGradient(S / 2, S / 2 + 2, 2, S / 2, S / 2, S * 0.34);
+    g.addColorStop(0, '#fff2a0'); g.addColorStop(0.35, '#ff8a2a'); g.addColorStop(0.75, '#a02a10'); g.addColorStop(1, '#2a0a06');
+    circle(c, S / 2, S / 2, S * 0.3, g, '#1a0e0a', 3);
+    c.strokeStyle = '#2a2220'; c.lineWidth = 2.5; for (let k = -1; k <= 1; k++) { c.beginPath(); c.moveTo(S / 2 + k * 7, S * 0.24); c.lineTo(S / 2 + k * 7, S * 0.76); c.stroke(); }
+    stripes(c, 6, S - 12, S - 12, 6, '#e0b020', '#1a1a14', 8);
+    bolts(c, 6, 6, S - 12, S - 12, 4, '#8a8078');
+  },
   liquid_depot(c, S, def) {
     panel(c, 5, 5, S - 10, S - 10, 14, '#2f6a9a');
     for (const [x, y, w, h] of [[S / 2 - 16, 5, 32, 10], [S / 2 - 16, S - 15, 32, 10], [5, S / 2 - 16, 10, 32], [S - 15, S / 2 - 16, 10, 32]]) inset(c, x, y, w, h, 3, '#10283a');
@@ -3379,8 +3682,10 @@ function drawBeltFrame(c, def, shape, phase) {
   const col = def.color, rail = shade(col, -0.2), railHi = shade(col, 0.25), chev = shade(col, 0.35);
   const W0 = 12, W1 = 52;
   if (shape === 0) {
-    c.fillStyle = '#1e2127'; c.fillRect(0, W0, BS, W1 - W0);
-    const g = c.createLinearGradient(0, W0, 0, W1); g.addColorStop(0, 'rgba(255,255,255,0.06)'); g.addColorStop(0.5, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.25)');
+    c.fillStyle = '#1c1f25'; c.fillRect(0, W0, BS, W1 - W0);
+    c.fillStyle = 'rgba(255,255,255,0.045)';
+    for (let k = 0; k < 9; k++) { const x = ((k * 8 + Math.max(0, phase) * 32) % 72) - 4; c.fillRect(x, W0, 2, W1 - W0); }
+    const g = c.createLinearGradient(0, W0, 0, W1); g.addColorStop(0, 'rgba(255,255,255,0.09)'); g.addColorStop(0.18, 'rgba(0,0,0,0)'); g.addColorStop(0.82, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.35)');
     c.fillStyle = g; c.fillRect(0, W0, BS, W1 - W0);
     c.save(); c.beginPath(); c.rect(0, W0, BS, W1 - W0); c.clip();
     c.strokeStyle = chev; c.globalAlpha = 0.55; c.lineWidth = 4; c.lineJoin = 'round';
@@ -3389,7 +3694,11 @@ function drawBeltFrame(c, def, shape, phase) {
       c.beginPath(); c.moveTo(x - 5, W0 + 9); c.lineTo(x + 5, 32); c.lineTo(x - 5, W1 - 9); c.stroke();
     }
     c.restore();
-    for (const y of [5, W1]) { c.fillStyle = rail; c.fillRect(0, y, BS, 7); c.fillStyle = railHi; c.fillRect(0, y, BS, 2); c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(0, y + 6, BS, 1); }
+    for (const y of [5, W1]) {
+      const rg = c.createLinearGradient(0, y, 0, y + 7); rg.addColorStop(0, railHi); rg.addColorStop(0.45, rail); rg.addColorStop(1, shade(def.color, -0.45));
+      c.fillStyle = rg; c.fillRect(0, y, BS, 7); c.fillStyle = 'rgba(0,0,0,0.4)'; c.fillRect(0, y + 6.5, BS, 1);
+      for (let k = 0; k < 4; k++) { c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.arc(k * 16 + 8.5, y + 3.9, 1.4, 0, 6.29); c.fill(); c.fillStyle = 'rgba(255,255,255,0.45)'; c.beginPath(); c.arc(k * 16 + 8, y + 3.3, 0.8, 0, 6.29); c.fill(); }
+    }
     if (phase >= 0) c.fillStyle = 'rgba(0,0,0,0.3)'; else c.fillStyle = 'rgba(0,0,0,0)';
     for (let k = 0; k < 4; k++) { c.fillRect(k * 16 + ((phase * 16) | 0) % 16, 6, 2, 5); c.fillRect(k * 16 + ((phase * 16) | 0) % 16, W1 + 1, 2, 5); }
     return;
@@ -3494,6 +3803,15 @@ function drawItemShape2(c, it, s, col, dk, hi, poly) {
     case 'pellet': for (const [x, y] of [[h - 5, h + 3], [h + 5, h + 3], [h, h - 5]]) { rr(c, x - 4, y - 5, 8, 10, 3); c.fillStyle = col; c.fill(); c.strokeStyle = '#2a6a1a'; c.stroke(); } break;
     case 'rod': rr(c, h - 5, 3, 10, s - 6, 4); c.fillStyle = '#9aa0a8'; c.fill(); c.strokeStyle = '#3a4048'; c.stroke(); c.fillStyle = col; c.fillRect(h - 3, 8, 6, s - 16); break;
     case 'residue': c.beginPath(); c.moveTo(6, h + 4); c.bezierCurveTo(4, 6, s - 8, 4, s - 5, h); c.bezierCurveTo(s - 3, s - 4, 10, s - 2, 6, h + 4); c.fillStyle = col; c.fill(); c.strokeStyle = dk; c.stroke(); circle(c, h - 2, h - 3, 2, hi); break;
+    case 'jar': { rr(c, 7, 8, s - 14, s - 11, 4); c.fillStyle = it.id === 'jar' ? 'rgba(200,236,245,0.55)' : col; c.fill(); c.strokeStyle = '#4a7a88'; c.stroke(); if (it.id !== 'jar') { c.fillStyle = 'rgba(255,255,255,0.3)'; c.fillRect(9, 12, 3, s - 18); c.fillStyle = '#f4ecd8'; c.fillRect(8, h, s - 16, 6); } rr(c, 6, 4, s - 12, 5, 1.5); c.fillStyle = it.id === 'jar' ? '#9aa6b0' : '#d84a4a'; c.fill(); c.stroke(); c.fillStyle = 'rgba(255,255,255,0.55)'; c.fillRect(10, 11, 2, s - 17); break; }
+    case 'firework': for (const [x, cl] of [[h - 6, col], [h + 1, '#4a8ae0'], [h + 7, '#f0c040']]) { rr(c, x - 3, 11, 6, s - 14, 1.5); c.fillStyle = cl; c.fill(); c.strokeStyle = dk; c.stroke(); poly([[x - 3, 11], [x, 5], [x + 3, 11]]); c.fillStyle = '#e8e0d0'; c.fill(); c.stroke(); } c.strokeStyle = '#6a4a2a'; c.beginPath(); c.moveTo(h, s - 3); c.lineTo(h, s); c.stroke(); break;
+    case 'toy': rr(c, 8, 11, s - 16, s - 17, 3); c.fillStyle = col; c.fill(); c.strokeStyle = dk; c.stroke(); rr(c, 10, 3, s - 20, 9, 2); c.fillStyle = '#c8ccd4'; c.fill(); c.stroke(); circle(c, h - 3, 7.5, 1.6, '#e04a4a'); circle(c, h + 3, 7.5, 1.6, '#e04a4a'); c.fillStyle = '#8a929a'; c.fillRect(3, 13, 5, 3); c.fillRect(s - 8, 13, 5, 3); c.fillRect(10, s - 6, 3, 4); c.fillRect(s - 13, s - 6, 3, 4); c.fillStyle = '#4a8ae0'; c.fillRect(h - 3, 15, 6, 4); break;
+    case 'ring': c.lineWidth = 3.5; c.strokeStyle = shade(col, -0.35); c.beginPath(); c.ellipse(h, h + 4, 9, 7, 0, 0, 6.29); c.stroke(); c.lineWidth = 2.2; c.strokeStyle = col; c.stroke(); poly([[h - 5, 9], [h, 3], [h + 5, 9], [h, 14]]); c.fillStyle = '#bfe8ff'; c.fill(); c.lineWidth = 1; c.strokeStyle = '#4a8aa8'; c.stroke(); c.fillStyle = '#fff'; c.fillRect(h - 2, 6, 2, 2); break;
+    case 'clock': rr(c, 5, 5, s - 10, s - 7, 5); c.fillStyle = '#7a4a2a'; c.fill(); c.strokeStyle = '#3a2010'; c.stroke(); circle(c, h, h - 1, 8.5, '#f4ecd8', col, 2); c.strokeStyle = '#2a2a2a'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(h, h - 1); c.lineTo(h, h - 7); c.moveTo(h, h - 1); c.lineTo(h + 5, h + 1); c.stroke(); c.fillStyle = col; c.fillRect(7, s - 5, s - 14, 3); break;
+    case 'mirror': c.beginPath(); c.ellipse(h, h - 1, 9, 12, 0, 0, 6.29); c.fillStyle = '#b8903a'; c.fill(); c.strokeStyle = '#5a4010'; c.stroke(); { const g = c.createLinearGradient(h - 7, 4, h + 7, s - 6); g.addColorStop(0, '#ffffff'); g.addColorStop(0.5, col); g.addColorStop(1, '#8ab0c8'); c.beginPath(); c.ellipse(h, h - 1, 7, 10, 0, 0, 6.29); c.fillStyle = g; c.fill(); } c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(h - 3, h - 6); c.lineTo(h + 2, h - 9); c.stroke(); break;
+    case 'statue': rr(c, 6, s - 8, s - 12, 6, 1); c.fillStyle = shade(col, -0.2); c.fill(); c.strokeStyle = dk; c.stroke(); c.fillStyle = col; circle(c, h, 7, 4, col, dk, 1); poly([[h - 5, 11], [h + 5, 11], [h + 6, s - 8], [h - 6, s - 8]]); c.fill(); c.stroke(); c.fillStyle = hi; c.fillRect(h - 3, 13, 2, s - 23); break;
+    case 'drone': c.fillStyle = '#3a4048'; c.fillRect(6, h - 1, s - 12, 2); c.fillRect(h - 1, 6, 2, s - 12); for (const [x, y] of [[6, 6], [s - 6, 6], [6, s - 6], [s - 6, s - 6]]) { circle(c, x, y, 5, 'rgba(200,220,235,0.35)', '#5a6a78', 1); circle(c, x, y, 1.5, '#2a2f36'); } rr(c, h - 6, h - 5, 12, 10, 3); c.fillStyle = col; c.fill(); c.strokeStyle = dk; c.stroke(); circle(c, h, h, 2, '#e04a4a'); break;
+    case 'armor': c.beginPath(); c.moveTo(h, 3); c.lineTo(s - 5, 8); c.lineTo(s - 6, h + 3); c.quadraticCurveTo(s - 9, s - 5, h, s - 2); c.quadraticCurveTo(9, s - 5, 6, h + 3); c.lineTo(5, 8); c.closePath(); c.fillStyle = col; c.fill(); c.strokeStyle = dk; c.lineWidth = 1.5; c.stroke(); c.strokeStyle = hi; c.beginPath(); c.moveTo(h, 6); c.lineTo(h, s - 5); c.stroke(); for (const [x, y] of [[9, 10], [s - 9, 10], [h, s - 8]]) circle(c, x, y, 1.3, '#c8d0d8'); break;
     case 'orb': { const g = c.createRadialGradient(h - 3, h - 3, 1, h, h, h - 2); g.addColorStop(0, '#ffffff'); g.addColorStop(0.3, '#ffe0ff'); g.addColorStop(0.6, '#8ad8ff'); g.addColorStop(1, 'rgba(120,80,255,0.3)'); circle(c, h, h, h - 2, g); for (let k = 0; k < 3; k++) { c.strokeStyle = ['#ff6ae0', '#6ae0ff', '#ffe06a'][k]; c.lineWidth = 1.2; c.beginPath(); c.ellipse(h, h, h - 3, 4, k * 1.05, 0, 6.29); c.stroke(); } break; }
     default: circle(c, h, h, h - 4, col, dk);
   }
@@ -3510,7 +3828,7 @@ const Sprites = {
       } else if (def.kind === 'tunnel') {
         for (let m = 0; m < 2; m++) for (let r = 0; r < 4; r++) this.body[k + ':' + m + ':' + r] = this.makeBody(def, c => drawTunnelArt(c, def, r, m));
       } else {
-        const fn = BodyArt[def.id] || (def.oil && BodyArt.pump) || (def.craft === 'assemble' && BodyArt.assembler) || BodyArt[def.kind] || BodyArt.assembler;
+        const fn = BodyArt[def.id] || (def.art && BodyArt['m_' + def.art]) || (def.oil && BodyArt.pump) || (def.craft === 'assemble' && BodyArt.assembler) || BodyArt[def.kind] || BodyArt.assembler;
         this.body[k] = this.makeBody(def, c => fn(c, def.size * SPR, def));
       }
       this.shadow[k] = this.makeShadow(def);
@@ -3535,24 +3853,43 @@ const Sprites = {
       def.tierIdx = ti;
     });
     // items with baked soft shadow
+    const IQ = 2, P = ITEM_PX * IQ;
     for (const it of ITEMS) {
-      const cv = mkCanvas(ITEM_PX + 6, ITEM_PX + 6), c = cv.getContext('2d');
-      const tmp = mkCanvas(ITEM_PX, ITEM_PX); drawItemShape(tmp.getContext('2d'), it, ITEM_PX);
-      c.save(); c.shadowColor = 'rgba(0,0,0,0.5)'; c.shadowBlur = 3; c.shadowOffsetX = 1.5; c.shadowOffsetY = 2; c.drawImage(tmp, 2, 2); c.restore();
+      const cv = mkCanvas((ITEM_PX + 6) * IQ, (ITEM_PX + 6) * IQ), c = cv.getContext('2d');
+      const tmp = mkCanvas(P, P), tc = tmp.getContext('2d'); tc.scale(IQ, IQ); drawItemShape(tc, it, ITEM_PX);
+      tc.setTransform(1, 0, 0, 1, 0, 0); tc.globalCompositeOperation = 'source-atop';
+      const g = tc.createLinearGradient(0, 0, P, P); g.addColorStop(0, 'rgba(255,255,255,0.16)'); g.addColorStop(0.55, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,0.18)');
+      tc.fillStyle = g; tc.fillRect(0, 0, P, P); tc.globalCompositeOperation = 'source-over';
+      const sil = mkCanvas(P, P), sc = sil.getContext('2d'); sc.drawImage(tmp, 0, 0); sc.globalCompositeOperation = 'source-in'; sc.fillStyle = 'rgba(12,14,18,0.85)'; sc.fillRect(0, 0, P, P);
+      c.save(); c.shadowColor = 'rgba(0,0,0,0.55)'; c.shadowBlur = 3 * IQ; c.shadowOffsetX = 1.5 * IQ; c.shadowOffsetY = 2.2 * IQ; c.drawImage(sil, 2 * IQ, 2 * IQ); c.restore();
+      for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) c.drawImage(sil, 2 * IQ + ox * 1.6, 2 * IQ + oy * 1.6);
+      c.drawImage(tmp, 2 * IQ, 2 * IQ);
       this.items[it.idx] = cv;
     }
     this.glow = this.makeGlow('255,200,110'); this.glowCool = this.makeGlow('120,220,255');
   },
   makeBody(def, fn) {
-    const S = def.size * SPR, cv = mkCanvas(S, S);
-    fn(cv.getContext('2d'));
+    const S = def.size * SPR, cv = mkCanvas(S * HQ, S * HQ), c = cv.getContext('2d');
+    c.scale(HQ, HQ); fn(c);
+    // unified key light (top-left) and fine material grain, applied only where paint exists
+    c.globalCompositeOperation = 'source-atop';
+    const g = c.createLinearGradient(0, 0, S, S);
+    g.addColorStop(0, 'rgba(255,246,225,0.12)'); g.addColorStop(0.5, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(8,14,32,0.22)');
+    c.fillStyle = g; c.fillRect(0, 0, S, S);
+    const n = (S * S / 30) | 0;
+    for (let i = 0; i < n; i++) { const h = hash2(i, def.idx, 71); c.fillStyle = h > 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'; c.fillRect(hash2(i, def.idx, 13) * S, hash2(i, def.idx, 29) * S, 0.8, 0.8); }
+    c.globalCompositeOperation = 'source-over';
     return cv;
   },
   makeShadow(def) {
-    const S = def.size * SPR, cv = mkCanvas(S + PAD * 2, S + PAD * 2), c = cv.getContext('2d');
-    c.shadowColor = 'rgba(0,0,0,0.55)'; c.shadowBlur = 12; c.shadowOffsetX = 6; c.shadowOffsetY = 7;
-    const inset = def.kind === 'pole' ? S * 0.3 : 6;
-    rr(c, PAD + inset, PAD + inset, S - inset * 2, S - inset * 2, 10); c.fillStyle = 'rgba(0,0,0,0.6)'; c.fill();
+    const S = def.size * SPR, cv = mkCanvas((S + PAD * 2) * HQ, (S + PAD * 2) * HQ), c = cv.getContext('2d');
+    c.scale(HQ, HQ);
+    const ins = def.kind === 'pole' || def.id === 'wind' ? S * 0.28 : 6;
+    // wide soft cast shadow + tight contact (ambient occlusion) shadow
+    c.save(); c.shadowColor = 'rgba(0,0,0,0.42)'; c.shadowBlur = 16 * HQ; c.shadowOffsetX = 9 * HQ; c.shadowOffsetY = 11 * HQ;
+    rr(c, PAD + ins, PAD + ins, S - ins * 2, S - ins * 2, 12); c.fillStyle = 'rgba(0,0,0,0.4)'; c.fill(); c.restore();
+    c.save(); c.shadowColor = 'rgba(0,0,0,0.55)'; c.shadowBlur = 4 * HQ; c.shadowOffsetX = 2 * HQ; c.shadowOffsetY = 3 * HQ;
+    rr(c, PAD + ins + 1, PAD + ins + 1, S - ins * 2 - 2, S - ins * 2 - 2, 10); c.fillStyle = 'rgba(0,0,0,0.5)'; c.fill(); c.restore();
     return cv;
   },
   makeGlow(rgb) {
@@ -3600,19 +3937,36 @@ function paintTerrain(c, tx0, ty0, n, px) {
     const i = Y * MAP_W + X, t = World.terr[i], col = terrainColor(i);
     const ox = x * px, oy = y * px;
     c.fillStyle = `rgb(${col[0] | 0},${col[1] | 0},${col[2] | 0})`; c.fillRect(ox, oy, px + 0.5, px + 0.5);
-    const h1 = hash2(X, Y, 11), h2 = hash2(X, Y, 23), h3 = hash2(X, Y, 37);
+    const h1 = hash2(X, Y, 11), h2 = hash2(X, Y, 23), h3 = hash2(X, Y, 37), h4 = hash2(X, Y, 53);
+    if (t !== T_WATER && t !== T_CLIFF) for (let d = 0; d < 4; d++) { // blend neighbouring ground into this tile's edge
+      const nx = X + DX[d], ny = Y + DY[d]; if (!World.inb(nx, ny)) continue;
+      const ni = ny * MAP_W + nx, tn = World.terr[ni];
+      if (tn === t || tn === T_WATER || tn === T_CLIFF || tn === T_CAVE || t === T_CAVE) continue;
+      const nc = terrainColor(ni), bw = px * 0.42;
+      const x0 = d === 0 ? ox + px : d === 2 ? ox : 0, y0 = d === 1 ? oy + px : d === 3 ? oy : 0;
+      const g = d === 0 || d === 2 ? c.createLinearGradient(x0, 0, d === 0 ? x0 - bw : x0 + bw, 0) : c.createLinearGradient(0, y0, 0, d === 1 ? y0 - bw : y0 + bw);
+      g.addColorStop(0, `rgba(${nc[0] | 0},${nc[1] | 0},${nc[2] | 0},0.55)`); g.addColorStop(1, `rgba(${nc[0] | 0},${nc[1] | 0},${nc[2] | 0},0)`);
+      c.fillStyle = g;
+      if (d === 0) c.fillRect(ox + px - bw, oy, bw, px + 0.5); else if (d === 2) c.fillRect(ox, oy, bw, px + 0.5);
+      else if (d === 1) c.fillRect(ox, oy + px - bw, px + 0.5, bw); else c.fillRect(ox, oy, px + 0.5, bw);
+    }
     if (t === T_GRASS) {
+      c.fillStyle = 'rgba(60,110,50,0.35)';
+      for (let k = 0; k < 4; k++) { const hx = hash2(X, Y, 90 + k), hy = hash2(X, Y, 95 + k); c.fillRect(ox + hx * px, oy + hy * px, px * 0.04 + 0.4, px * 0.12); }
       c.fillStyle = 'rgba(20,50,20,0.35)';
       for (let k = 0; k < 3; k++) { const hx = hash2(X, Y, 50 + k), hy = hash2(X, Y, 60 + k); c.fillRect(ox + hx * px, oy + hy * px, px * 0.06 + 0.5, px * 0.16); }
       c.fillStyle = 'rgba(140,200,110,0.22)'; c.fillRect(ox + h2 * px, oy + h3 * px, px * 0.07 + 0.5, px * 0.14);
-      if (h1 > 0.93) { c.fillStyle = h2 > 0.5 ? 'rgba(240,220,120,0.8)' : 'rgba(240,240,255,0.8)'; c.beginPath(); c.arc(ox + h3 * px, oy + h2 * px, px * 0.05 + 0.4, 0, 6.29); c.fill(); }
+      if (h1 > 0.93) { const fc = h2 > 0.66 ? '240,220,120' : h2 > 0.33 ? '240,240,255' : '235,150,190'; for (let q = 0; q < 3; q++) { c.fillStyle = `rgba(${fc},0.85)`; c.beginPath(); c.arc(ox + (h3 + q * 0.09) % 1 * px, oy + (h2 + q * 0.13) % 1 * px, px * 0.045 + 0.4, 0, 6.29); c.fill(); } }
+      if (!World.res[i] && h4 < 0.035) propBush(c, ox, oy, px, h1, h2, h4 < 0.009);
     } else if (t === T_SAND) {
       c.fillStyle = 'rgba(120,90,40,0.18)'; for (let k = 0; k < 3; k++) c.fillRect(ox + hash2(X, Y, 70 + k) * px, oy + hash2(X, Y, 80 + k) * px, px * 0.05 + 0.5, px * 0.05 + 0.5);
       c.strokeStyle = 'rgba(255,240,200,0.18)'; c.lineWidth = px * 0.04; c.beginPath(); c.moveTo(ox + px * 0.1, oy + px * (0.3 + h1 * 0.4)); c.quadraticCurveTo(ox + px * 0.5, oy + px * (0.2 + h2 * 0.5), ox + px * 0.9, oy + px * (0.3 + h3 * 0.4)); c.stroke();
+      if (!World.res[i] && h4 < 0.03) propPebbles(c, ox, oy, px, h1, h2, '#b8a878');
     } else if (t === T_ROCK) {
       if (h1 > 0.55) { c.strokeStyle = 'rgba(30,30,30,0.28)'; c.lineWidth = px * 0.035 + 0.3; c.beginPath(); c.moveTo(ox + h2 * px, oy + h3 * px * 0.3); c.lineTo(ox + h3 * px, oy + px * 0.5); c.lineTo(ox + h2 * px * 0.7, oy + px * (0.7 + h1 * 0.3)); c.stroke(); }
       c.fillStyle = 'rgba(210,210,200,0.2)'; c.beginPath(); c.arc(ox + h3 * px, oy + h1 * px, px * (0.05 + h2 * 0.08), 0, 6.29); c.fill();
       c.fillStyle = 'rgba(40,40,40,0.18)'; c.beginPath(); c.arc(ox + h2 * px, oy + h3 * px, px * (0.04 + h1 * 0.06), 0, 6.29); c.fill();
+      if (!World.res[i] && h4 < 0.05) propPebbles(c, ox, oy, px, h1, h2, '#8a8882', true);
     } else if (t === T_CLIFF) {
       c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(ox, oy + px * 0.6, px + 0.5, px * 0.4);
       c.fillStyle = 'rgba(160,140,120,0.35)'; c.beginPath(); c.moveTo(ox, oy + px * (0.3 + h1 * 0.2)); c.lineTo(ox + px * 0.5, oy + px * h2 * 0.3); c.lineTo(ox + px, oy + px * (0.3 + h3 * 0.2)); c.lineTo(ox + px, oy + px * 0.55); c.lineTo(ox, oy + px * 0.55); c.closePath(); c.fill();
@@ -3630,10 +3984,28 @@ function paintTerrain(c, tx0, ty0, n, px) {
         if (d === 0) c.fillRect(ox + px * 0.86, oy, px * 0.14, px); else if (d === 2) c.fillRect(ox, oy, px * 0.14, px);
         else if (d === 1) c.fillRect(ox, oy + px * 0.86, px, px * 0.14); else c.fillRect(ox, oy, px, px * 0.14);
       }
-      if (h1 > 0.8) { c.strokeStyle = 'rgba(200,230,255,0.12)'; c.lineWidth = px * 0.04; c.beginPath(); c.moveTo(ox + px * 0.2, oy + h2 * px); c.lineTo(ox + px * 0.6, oy + h2 * px); c.stroke(); }
+      if (h1 > 0.55) { c.strokeStyle = 'rgba(200,230,255,0.13)'; c.lineWidth = px * 0.035 + 0.2; c.beginPath(); c.moveTo(ox + px * (0.1 + h3 * 0.3), oy + h2 * px); c.quadraticCurveTo(ox + px * 0.5, oy + h2 * px - px * 0.08, ox + px * (0.6 + h3 * 0.3), oy + h2 * px); c.stroke(); }
+      c.fillStyle = 'rgba(0,20,50,0.12)'; c.fillRect(ox, oy + px * 0.5 * h4, px + 0.5, px * 0.08);
     }
     const r = World.res[i];
     if (r) paintOre(c, r, X, Y, ox, oy, px);
+  }
+}
+function propBush(c, ox, oy, px, h1, h2, tree) {
+  const cx = ox + px * (0.3 + h1 * 0.4), cy = oy + px * (0.3 + h2 * 0.4), r = px * (tree ? 0.34 : 0.22);
+  c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(cx + r * 0.35, cy + r * 0.45, r * 1.05, r * 0.75, 0, 0, 6.29); c.fill();
+  if (tree) { c.fillStyle = '#5a3e26'; c.fillRect(cx - px * 0.03, cy, px * 0.06, px * 0.14); }
+  const cols = tree ? ['#2c5a2a', '#3a7234', '#4f8c42'] : ['#2f5f2c', '#3e7638', '#56934a'];
+  for (let k = 0; k < 3; k++) { c.fillStyle = cols[k]; c.beginPath(); c.arc(cx - r * 0.2 * k + r * 0.15, cy - r * 0.18 * k, r * (1 - k * 0.22), 0, 6.29); c.fill(); }
+  c.fillStyle = 'rgba(200,240,150,0.25)'; c.beginPath(); c.arc(cx - r * 0.35, cy - r * 0.45, r * 0.3, 0, 6.29); c.fill();
+}
+function propPebbles(c, ox, oy, px, h1, h2, col, big) {
+  const n = big ? 1 : 3;
+  for (let k = 0; k < n; k++) {
+    const cx = ox + px * (0.2 + ((h1 + k * 0.29) % 1) * 0.6), cy = oy + px * (0.2 + ((h2 + k * 0.41) % 1) * 0.6), r = px * (big ? 0.2 : 0.06);
+    c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(cx + r * 0.3, cy + r * 0.4, r, r * 0.7, 0, 0, 6.29); c.fill();
+    c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, r, r * 0.8, 0.3, 0, 6.29); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.3)'; c.beginPath(); c.ellipse(cx - r * 0.3, cy - r * 0.3, r * 0.35, r * 0.22, 0.3, 0, 6.29); c.fill();
   }
 }
 function paintOre(c, r, X, Y, ox, oy, px) {
@@ -3694,14 +4066,37 @@ const Particles = {
       else { this.vx[i] *= 0.99; this.vy[i] *= 0.99; }
     }
   },
+  puffs: new Map(),
+  puff(col) {
+    let p = this.puffs.get(col);
+    if (!p) {
+      p = mkCanvas(32, 32); const g = p.getContext('2d'), r = g.createRadialGradient(13, 13, 1, 16, 16, 16);
+      r.addColorStop(0, col); r.addColorStop(0.55, col); r.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = r; g.globalAlpha = 0.9; g.fillRect(0, 0, 32, 32); this.puffs.set(col, p);
+    }
+    return p;
+  },
   draw(c) {
+    let sparks = 0;
     for (let i = 0; i < this.n; i++) {
-      const a = this.life[i] / this.max[i], k = this.kind[i];
-      c.globalAlpha = k === 0 || k === 3 ? a * 0.45 : a;
-      c.fillStyle = this.col[i];
-      const s = this.size[i];
-      if (k === 1) c.fillRect(this.x[i] - s / 2, this.y[i] - s / 2, s, s);
-      else { c.beginPath(); c.arc(this.x[i], this.y[i], s, 0, 6.2832); c.fill(); }
+      const a = this.life[i] / this.max[i], k = this.kind[i], s = this.size[i];
+      if (k === 1) { sparks++; continue; }
+      if (k === 0 || k === 3) {
+        // soft smoke puff: fades in quickly, then out while it grows
+        c.globalAlpha = Math.min(1, (1 - a) * 6) * a * 0.55;
+        const d = s * 2.6; c.drawImage(this.puff(this.col[i]), this.x[i] - d / 2, this.y[i] - d / 2, d, d);
+      } else { c.globalAlpha = a; c.fillStyle = this.col[i]; c.beginPath(); c.arc(this.x[i], this.y[i], s, 0, 6.2832); c.fill(); }
+    }
+    if (sparks) {
+      // hot sparks: additive motion streaks
+      c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
+      for (let i = 0; i < this.n; i++) {
+        if (this.kind[i] !== 1) continue;
+        const a = this.life[i] / this.max[i];
+        c.globalAlpha = a; c.strokeStyle = this.col[i]; c.lineWidth = this.size[i] * 0.8;
+        c.beginPath(); c.moveTo(this.x[i], this.y[i]); c.lineTo(this.x[i] - this.vx[i] * 0.035, this.y[i] - this.vy[i] * 0.035); c.stroke();
+      }
+      c.globalCompositeOperation = 'source-over'; c.lineCap = 'butt';
     }
     c.globalAlpha = 1;
   },
@@ -3799,6 +4194,7 @@ const Render = {
         else c.drawImage(this.lowMap, cx * CHUNK * this.lowL, cy * CHUNK * this.lowL, CHUNK * this.lowL, CHUNK * this.lowL, wx, wy, S + 0.6, S + 0.6);
       }
     }
+    if (hi && ts >= 12) this.drawWater(c, x0, y0, x1, y1);
     // --- grid (build modes)
     if (Tools.mode !== 'select' && ts >= 12 && Settings.grid) {
       c.beginPath();
@@ -3855,7 +4251,7 @@ const Render = {
     if (Settings.shadows && hi && !far) for (let i = 0; i < vo.length; i++) {
       const e = vo[i], s0 = Sprites.shadow[e.type]; if (!s0) continue;
       const s = mip(s0, (e.w + 0.9) * ts * dpr), k = TILE / SPR;
-      c.drawImage(s, e.x * TILE - PAD * k, e.y * TILE - PAD * k, s0.width * k, s0.height * k);
+      c.drawImage(s, e.x * TILE - PAD * k, e.y * TILE - PAD * k, s0.width * k / HQ, s0.height * k / HQ);
     }
     let working = 0;
     for (let i = 0; i < vo.length; i++) {
@@ -3866,11 +4262,14 @@ const Render = {
       c.drawImage(img, e.x * TILE, e.y * TILE, e.w * TILE, e.h * TILE);
       this.drawDynamic(c, e, ts, dt, hi);
       if (pop !== 1) c.restore();
+      const ag = this.now - e.born;
+      if (ag >= 0 && ag < 520 && hi) this.placeRing(c, e, ag / 520);
       if (e.status === ST.WORK && (e.def.kind === 'machine' || e.def.kind === 'miner')) working++;
     }
     this.workingNear = working;
     // --- power lines
     if (!far) this.drawWires(c, x0, y0, x1, y1);
+    if (q === 'high' && Settings.clouds && ts >= 10 && ts < 90) this.drawClouds(c, x0, y0, x1, y1);
     // --- particles
     if (Settings.particles && hi && ts >= 10) { Particles.update(dt); Particles.draw(c); } else Particles.n = 0;
     // --- overlays
@@ -4119,6 +4518,13 @@ const Render = {
         }
         break;
       }
+      case 'void': {
+        const fl = e.flash ? Math.max(0, 1 - (this.now - e.flash) / 500) : 0, f = 0.35 + fl * 0.6 + 0.1 * Math.sin(this.now * 0.02 + e.id);
+        c.globalAlpha = f; c.drawImage(Sprites.glow, cx - S * 0.4, cy - S * 0.4, S * 0.8, S * 0.8); c.globalAlpha = 1;
+        if (fl > 0) this.addGlow(cx, cy, S * 1.4, 0);
+        if (fl > 0 && Settings.particles && hi && detail && Math.random() < 0.3) Particles.spawn(0, cx, cy, (Math.random() - 0.5) * 10, -25, 1.6, 2.5, 5, '#5a5250');
+        break;
+      }
       case 'storage': {
         if (ts >= 10) {
           const f = e.total / storeCap(e);
@@ -4231,11 +4637,69 @@ const Render = {
       case 'chem_plant': if (working && parts && Math.random() < 0.08) Particles.spawn(3, x + S * (0.2 + Math.random() * 0.2), y + S * 0.2, 0, -15, 2, 3, 5, '#d8f0a0'); glowAt(x + S * 0.3, y + S * 0.3, S * 0.08, true); return true;
       case 'munitions': if (detail) { const py = y + S * 0.3 + Math.abs(Math.sin(an * 4)) * S * 0.18; c.fillStyle = '#8a9270'; c.fillRect(cx - S * 0.12, y + S * 0.26, S * 0.24, py - y - S * 0.26); c.fillStyle = '#c8c8b8'; c.fillRect(cx - S * 0.14, py, S * 0.28, 6); } if (working && parts && Math.random() < 0.04) Particles.spawn(1, cx, y + S * 0.55, (Math.random() - 0.5) * 80, -50, 0.35, 2, 0, '#ffe08a'); return true;
       case 'armory': if (working && parts && Math.random() < 0.06) for (let q = 0; q < 3; q++) Particles.spawn(1, cx, cy, (Math.random() - 0.5) * 100, -60 - Math.random() * 40, 0.4, 2, 0, '#ffd070'); glowAt(cx, cy, S * 0.08); return true;
+      case 'workshop': {
+        const hit = Math.abs(Math.sin(an * 3)), hx = x + S * 0.72, hy = y + S * 0.5 - hit * S * 0.12;
+        if (detail) { c.save(); c.translate(hx, hy); c.rotate(-0.5 + hit * 0.5); c.fillStyle = '#6a4a2a'; c.fillRect(-2, -2, 4, S * 0.16); c.fillStyle = '#5a6068'; c.fillRect(-7, -5, 14, 8); c.restore(); }
+        if (working && parts && hit < 0.12) for (let q = 0; q < 4; q++) Particles.spawn(1, x + S * 0.72, y + S * 0.52, (Math.random() - 0.5) * 110, -50 - Math.random() * 50, 0.35, 1.8, 0, '#ffd070');
+        return true;
+      }
       case 'centrifuge':
         if (detail) { c.save(); c.translate(cx, cy); c.rotate(an * 8); c.strokeStyle = '#6aff4a'; c.lineWidth = 3; for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(0, 0, S * 0.24, k * 1.57, k * 1.57 + 0.9); c.stroke(); } c.restore(); }
         glowAt(cx, cy, S * 0.14, true); return true;
     }
     return false;
+  },
+  drawWater(c, x0, y0, x1, y1) {
+    // sun glints drifting across open water (batched into one path)
+    const T = World.terr, t = this.now * 0.001;
+    c.beginPath(); let any = false;
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      if (T[y * MAP_W + x] !== T_WATER) continue;
+      const h = hash2(x, y, 77), ph = Math.sin(t * (0.9 + h) + h * 40);
+      if (ph < 0.55) continue;
+      const w = TILE * (0.15 + 0.3 * (ph - 0.55)), gx = x * TILE + ((h * 7.3 + t * 0.08) % 1) * (TILE - w), gy = y * TILE + (hash2(y, x, 78) * 0.8 + 0.1) * TILE;
+      c.rect(gx, gy, w, 1.4); any = true;
+    }
+    if (any) { c.fillStyle = 'rgba(235,248,255,0.5)'; c.fill(); }
+  },
+  cloudImg: null, cloudCv: null,
+  drawClouds(c, x0, y0, x1, y1) {
+    // slow drifting cloud shadows over the whole map
+    if (!this.cloudImg) {
+      const cv = mkCanvas(256, 160), g = cv.getContext('2d');
+      for (let k = 0; k < 14; k++) {
+        const cx = 50 + hash2(k, 1, 91) * 156, cy = 50 + hash2(k, 2, 91) * 60, r = 26 + hash2(k, 3, 91) * 30;
+        const rg = g.createRadialGradient(cx, cy, 0, cx, cy, r); rg.addColorStop(0, 'rgba(10,18,40,0.55)'); rg.addColorStop(1, 'rgba(10,18,40,0)');
+        g.fillStyle = rg; g.fillRect(cx - r, cy - r, r * 2, r * 2);
+      }
+      this.cloudImg = cv;
+    }
+    // composed into a 1/8-resolution buffer, then stretched once over the screen (cheap fill-rate)
+    const t = this.now * 0.001, span = (MAP_W + 80) * TILE, vx0 = x0 * TILE, vx1 = (x1 + 1) * TILE, vy0 = y0 * TILE, vy1 = (y1 + 1) * TILE;
+    const K = 8, cw = Math.ceil(this.W / K), ch = Math.ceil(this.H / K), z = Cam.zoom / K;
+    if (!this.cloudCv || this.cloudCv.width !== cw || this.cloudCv.height !== ch) this.cloudCv = mkCanvas(cw, ch);
+    const g = this.cloudCv.getContext('2d'); g.clearRect(0, 0, cw, ch);
+    let any = false;
+    for (let k = 0; k < 18; k++) {
+      const w = (22 + hash2(k, 4, 92) * 26) * TILE, hgt = w * 0.62;
+      const bx = ((hash2(k, 5, 92) * span + t * TILE * (0.5 + hash2(k, 6, 92) * 0.4)) % span) - 40 * TILE;
+      const yy = ((hash2(k, 7, 92) * MAP_H + t * 0.12) % MAP_H) * TILE - hgt / 2;
+      if (bx > vx1 || bx + w < vx0 || yy > vy1 || yy + hgt < vy0) continue;
+      g.drawImage(this.cloudImg, Cam.sx(bx) / K, Cam.sy(yy) / K, w * z, hgt * z); any = true;
+    }
+    if (!any) return;
+    c.save(); c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    c.globalAlpha = 0.16 * (Settings.daynight ? clamp(Sim.daylight * 1.4, 0.2, 1) : 1);
+    c.drawImage(this.cloudCv, 0, 0, cw * K, ch * K); c.restore();
+  },
+  placeRing(c, e, t) {
+    const X = e.x * TILE, Y = e.y * TILE, W = e.w * TILE, H = e.h * TILE, g = t * TILE * 0.7;
+    c.strokeStyle = `rgba(255,236,180,${(1 - t) * 0.75})`; c.lineWidth = 3 * (1 - t) + 0.5;
+    rr(c, X - g, Y - g, W + g * 2, H + g * 2, 8 + g); c.stroke();
+    if (t < 0.05 && !e._dust && Settings.particles) {
+      e._dust = 1;
+      for (let k = 0; k < 6 + e.w * 3; k++) { const a = Math.random() * 6.28; Particles.spawn(0, X + W / 2 + Math.cos(a) * W * 0.45, Y + H / 2 + Math.sin(a) * H * 0.45, Math.cos(a) * 30, Math.sin(a) * 30, 0.7, 3, 6, '#b8a88a'); }
+    }
   },
   drawPollution(c, x0, y0, x1, y1) {
     const g = Pollution.grid, S = CHUNK * TILE;
@@ -4291,9 +4755,14 @@ const Render = {
     // selection
     const s = UI.sel;
     if (s && !s.dead) {
-      const pulse = 0.6 + 0.4 * Math.sin(this.now * 0.006);
-      c.strokeStyle = `rgba(240,165,58,${pulse})`; c.lineWidth = 2.5 * inv;
-      rr(c, s.x * TILE - 2, s.y * TILE - 2, s.w * TILE + 4, s.h * TILE + 4, 6); c.stroke();
+      const pulse = 0.6 + 0.4 * Math.sin(this.now * 0.006), X = s.x * TILE - 3, Y = s.y * TILE - 3, W = s.w * TILE + 6, H = s.h * TILE + 6, L = Math.min(W, H) * 0.28;
+      c.fillStyle = `rgba(240,165,58,${0.06 + 0.05 * pulse})`; rr(c, X, Y, W, H, 6); c.fill();
+      c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 2.5 * inv; c.stroke();
+      c.strokeStyle = `rgba(255,196,96,${0.55 + 0.35 * pulse})`; c.lineWidth = 1.6 * inv; c.setLineDash([6 * inv, 4 * inv]); c.lineDashOffset = -this.now * 0.02 * inv; c.stroke(); c.setLineDash([]); c.lineDashOffset = 0;
+      c.strokeStyle = '#ffd27a'; c.lineWidth = 3 * inv; c.lineCap = 'round'; c.beginPath();
+      for (const [px, py, dx, dy] of [[X, Y, 1, 1], [X + W, Y, -1, 1], [X, Y + H, 1, -1], [X + W, Y + H, -1, -1]]) { c.moveTo(px + dx * L, py); c.lineTo(px, py); c.lineTo(px, py + dy * L); }
+      c.stroke(); c.lineCap = 'butt';
+      c.strokeStyle = `rgba(240,165,58,${pulse})`; c.lineWidth = 2 * inv;
       if (s.def.kind === 'tunnel' && s.pair) { const p = s.pair; rr(c, p.x * TILE - 2, p.y * TILE - 2, TILE + 4, TILE + 4, 6); c.stroke(); }
     }
     // hover highlight
@@ -4328,15 +4797,22 @@ const Render = {
         this.ghost(c, it.t, ox + it.dx, oy + it.dy, it.r, chk.ok || chk.same, it.cfg.m | 0);
       }
       Tools.ghostCost = spent; Tools.ghostBad = bad;
-    } else if ((tm === 'demolish' || tm === 'copy')) {
+    } else if (tm === 'demolish' || tm === 'copy' || tm === 'upgrade') {
       const d = Tools.drag || { sx: Input.tx, sy: Input.ty, cx: Input.tx, cy: Input.ty };
       const bx0 = Math.min(d.sx, d.cx), by0 = Math.min(d.sy, d.cy), bx1 = Math.max(d.sx, d.cx), by1 = Math.max(d.sy, d.cy);
-      const col = tm === 'demolish' ? '238,93,93' : '79,176,216';
+      const col = tm === 'demolish' ? '238,93,93' : tm === 'upgrade' ? '120,230,120' : '79,176,216';
       if (Tools.drag) {
         const { set } = Tools.boxEnts(d, tm === 'copy');
-        c.fillStyle = `rgba(${col},0.28)`;
-        for (const e of set) c.fillRect(e.x * TILE, e.y * TILE, e.w * TILE, e.h * TILE);
-      } else if (hov && tm === 'demolish') { c.fillStyle = `rgba(${col},0.3)`; c.fillRect(hov.x * TILE, hov.y * TILE, hov.w * TILE, hov.h * TILE); }
+        c.fillStyle = `rgba(${col},0.28)`; let cost = 0;
+        for (const e of set) {
+          if (tm === 'upgrade') { if (!Tools.upgradable(e)) continue; const up = BUILDINGS[e.def.upgrade]; cost += ((Build.kit[e.def.upgrade] | 0) > 0 ? 0 : up.cost) - (e.kit ? 0 : e.paid * BALANCE.refundRate); this.upArrow(c, e); }
+          c.fillRect(e.x * TILE, e.y * TILE, e.w * TILE, e.h * TILE);
+        }
+        if (tm === 'upgrade') Tools.ghostCost = Math.max(0, cost);
+      } else if (hov && (tm === 'demolish' || (tm === 'upgrade' && Tools.upgradable(hov)))) {
+        c.fillStyle = `rgba(${col},0.3)`; c.fillRect(hov.x * TILE, hov.y * TILE, hov.w * TILE, hov.h * TILE);
+        if (tm === 'upgrade') { this.upArrow(c, hov); const up = BUILDINGS[hov.def.upgrade]; Tools.ghostCost = Math.max(0, ((Build.kit[hov.def.upgrade] | 0) > 0 ? 0 : up.cost) - (hov.kit ? 0 : hov.paid * BALANCE.refundRate)); }
+      } else if (tm === 'upgrade') Tools.ghostCost = 0;
       c.fillStyle = `rgba(${col},0.08)`; c.fillRect(bx0 * TILE, by0 * TILE, (bx1 - bx0 + 1) * TILE, (by1 - by0 + 1) * TILE);
       c.strokeStyle = `rgba(${col},0.9)`; c.lineWidth = 2 * inv; c.setLineDash([6 * inv, 4 * inv]);
       c.strokeRect(bx0 * TILE, by0 * TILE, (bx1 - bx0 + 1) * TILE, (by1 - by0 + 1) * TILE); c.setLineDash([]);
@@ -4344,6 +4820,11 @@ const Render = {
       c.strokeStyle = 'rgba(255,255,255,0.35)'; c.lineWidth = 1.5 * inv; c.setLineDash([4 * inv, 3 * inv]);
       c.strokeRect(Input.tx * TILE + 2, Input.ty * TILE + 2, TILE - 4, TILE - 4); c.setLineDash([]);
     }
+  },
+  upArrow(c, e) {
+    const cx = (e.x + e.w / 2) * TILE, cy = (e.y + e.h / 2) * TILE, s = Math.min(e.w, 2) * TILE * 0.22, b = Math.sin(this.now * 0.008) * s * 0.2;
+    c.fillStyle = 'rgba(20,60,20,0.6)'; c.beginPath(); c.arc(cx, cy, s * 1.3, 0, 6.29); c.fill();
+    c.fillStyle = '#9dff9d'; c.beginPath(); c.moveTo(cx, cy - s + b); c.lineTo(cx + s * 0.8, cy + b); c.lineTo(cx + s * 0.3, cy + b); c.lineTo(cx + s * 0.3, cy + s * 0.8 + b); c.lineTo(cx - s * 0.3, cy + s * 0.8 + b); c.lineTo(cx - s * 0.3, cy + b); c.lineTo(cx - s * 0.8, cy + b); c.closePath(); c.fill();
   },
   ghost(c, type, x, y, rot, ok, mode) {
     const def = BUILDINGS[type], S = def.size * TILE, img = Sprites.bodyFor(type, rot, mode);
@@ -4444,8 +4925,8 @@ const Render = {
    7. UI — DOM panels, tooltips, modals, HUD (throttled to ~10 Hz)
    ===================================================================== */
 const Settings = {
-  KEYS: ['master', 'music', 'sfx', 'quality', 'particles', 'shadows', 'daynight', 'events', 'uiScale', 'colorblind', 'autosave', 'showFps', 'grid', 'minimap', 'tutorial'],
-  master: 0.7, music: 0.35, sfx: 0.8, quality: 'high', particles: true, shadows: true, daynight: true, events: true,
+  KEYS: ['master', 'music', 'sfx', 'quality', 'particles', 'shadows', 'clouds', 'daynight', 'events', 'uiScale', 'colorblind', 'autosave', 'showFps', 'grid', 'minimap', 'tutorial'],
+  master: 0.7, music: 0.35, sfx: 0.8, quality: 'high', particles: true, shadows: true, clouds: true, daynight: true, events: true,
   uiScale: 1, colorblind: false, autosave: 30, showFps: false, grid: true, minimap: true, tutorial: true,
   load() {
     try { const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); for (const k of this.KEYS) if (o[k] !== undefined && typeof o[k] === typeof this[k]) this[k] = o[k]; } catch (_) { /* defaults */ }
@@ -4480,6 +4961,10 @@ const UI = {
     bind('tool-demolish', () => Tools.set(Tools.mode === 'demolish' ? 'select' : 'demolish'));
     bind('tool-copy', () => Tools.set(Tools.mode === 'copy' ? 'select' : 'copy'));
     bind('tool-paste', () => Tools.set('paste'));
+    bind('tool-upgrade', () => Tools.set(Tools.mode === 'upgrade' ? 'select' : 'upgrade'));
+    bind('alerts-chip', () => this.nextAlert());
+    $('st-speed').addEventListener('click', ev => { if (ev.target.closest('#spd-pause')) Game.togglePause(); else Game.cycleSpeed(1); Sfx.play('click'); });
+    $('st-speed').addEventListener('contextmenu', ev => { ev.preventDefault(); Game.cycleSpeed(-1); });
     bind('tool-rotate', () => Tools.rotate(1));
     bind('tool-undo', () => History.doUndo());
     bind('tool-redo', () => History.doRedo());
@@ -4665,7 +5150,7 @@ const UI = {
     if (def.kind === 'machine') rows.push(['Speed', `×${(def.speed * Upg.speed).toFixed(2)}`], ['Crafts', CRAFT_NAMES[def.craft]]);
     if (def.par > 1) rows.push(['Parallel', def.par + ' recipes at once']);
     if (def.kind === 'lab') rows.push(['Studies', `${def.labRate} items/s`], ['Bonus', `×${def.rpMul} RP`]);
-    if (def.kind === 'sell') rows.push(['Truck size', fmt(def.cap) + (def.liquid ? ' liquids' : ' items')]);
+    if (def.kind === 'sell') { rows.push(['Truck size', fmt(def.cap) + (def.liquid ? ' liquids' : ' items')]); if (def.priceMul) rows.push(['Prices', `×${def.priceMul}`]); if (def.accept) rows.push(['Buys', def.accept.map(c => (ITEM_CATS.find(x => x[0] === c) || [c, c])[1]).join(', ')]); }
     if (def.power) rows.push(['Power', fmtPower(def.power)]);
     if (def.out) rows.push(['Generates', fmtPower(def.out)]);
     if (def.fuels) rows.push(['Fuel', Object.keys(def.fuels).map(f => ITEMS[II[f]].name).join(', ')]);
@@ -4680,7 +5165,7 @@ const UI = {
   },
   onToolChange() {
     const m = Tools.mode;
-    const map = { select: 'tool-select', demolish: 'tool-demolish', copy: 'tool-copy', paste: 'tool-paste' };
+    const map = { select: 'tool-select', demolish: 'tool-demolish', copy: 'tool-copy', paste: 'tool-paste', upgrade: 'tool-upgrade' };
     for (const k in map) $(map[k]).classList.toggle('on', m === k);
     this.refreshBuild();
     const hints = {
@@ -4689,9 +5174,10 @@ const UI = {
       demolish: '<b>Demolish</b> · click or drag a box · full refund',
       copy: '<b>Copy</b> · drag a box around buildings',
       paste: '<b>Paste</b> · click to place · <kbd>R</kbd> rotate · <kbd>Esc</kbd> done',
+      upgrade: '<b>Upgrade planner</b> · click or drag a box · upgrades everything inside to the next unlocked tier',
     };
     $('mode-hint').innerHTML = hints[m] || '';
-    $('game').style.cursor = m === 'select' ? 'default' : m === 'demolish' ? 'not-allowed' : 'crosshair';
+    $('game').style.cursor = m === 'select' ? 'default' : m === 'demolish' ? 'not-allowed' : m === 'upgrade' ? 'n-resize' : 'crosshair';
   },
   toggleMinimap() { Settings.minimap = !Settings.minimap; Settings.save(); },
 
@@ -4700,7 +5186,7 @@ const UI = {
     if (this.tipOwner || !Input.over || Input.mx < 0 || this.famOpen || Input.g && Input.g.mode === 'pan') { if (!this.tipOwner) this.hideTip(); return; }
     let html = '';
     const tx = Input.tx, ty = Input.ty;
-    if (Tools.mode === 'build' || Tools.mode === 'paste') {
+    if (Tools.mode === 'build' || Tools.mode === 'paste' || Tools.mode === 'upgrade') {
       if (Tools.ghostReason && !Input.touchUsed) html = `<span class="bad">✖ ${esc(Tools.ghostReason)}</span>`;
       if (Tools.ghostCost > 0) html += `${html ? '<br>' : ''}Total: <b style="color:var(--money)">${fmtMoney(Tools.ghostCost)}</b>`;
     } else if (Tools.mode === 'select' && World.inb(tx, ty)) {
@@ -4712,12 +5198,16 @@ const UI = {
         if (k === 'machine' && e.recipe >= 0) extra = ` · ${esc(ITEMS[RECIPES[e.recipe].out[0][0]].name)}`;
         if (k === 'miner') extra = ` · ${e.def.giga ? 'Random' : e.ore >= 0 ? esc(ITEMS[e.ore].name) : '—'}`;
         if (k === 'farm') extra = ` · ${esc(ITEMS[e.crop].name)}`;
-        if (k === 'belt') extra = ` · ${fmtRate(e.def.speed / SP)}`;
+        if (k === 'belt') { extra = ` · ${fmtRate(e.def.speed / SP)}`; if (e.n) { const m = {}; for (let q = 0; q < e.n; q++) m[e.ty[q]] = (m[e.ty[q]] || 0) + 1; extra += '<br>' + Object.keys(m).map(q => `${m[q]}× ${esc(ITEMS[q].name)}`).join(', '); } }
+        if (k === 'machine' && e.status === ST.WORK && e.sp && e.sp.length) { let pr = 0; for (let q = 0; q < e.sp.length; q++) pr = Math.max(pr, e.sp[q]); extra += ` · ${Math.round(pr * 100)}%`; }
+        if (k === 'storage') extra = ` · ${fmt(e.total)}/${fmt(storeCap(e))}${e.filter >= 0 ? ' · ' + esc(ITEMS[e.filter].name) : ''}`;
+        if (k === 'router' && e.filter >= 0) extra = ` · ${esc(ITEMS[e.filter].name)}`;
+        if (Tools.clip && Input.keys.has('shift')) extra += `<br><span style="color:var(--blue)">Shift+click: paste ${esc(Tools.clip.name)} settings</span>`;
         if (k === 'sell') extra = ` · ${e.invN}/${sellCap(e)}`;
         html = `<b>${esc(e.def.name)}</b>${extra}${st}`;
       } else {
         const i = ty * MAP_W + tx, r = World.res[i], t = World.terr[i];
-        if (r) { const it = RES_ITEM[r]; html = `<b>${esc(ITEMS[it].name)}</b> deposit · click to hand-mine (+${fmtMoney(VALUE[it] * Upg.sell * Upg.hand)})`; }
+        if (r) { const it = RES_ITEM[r], t = handTierOf(r); html = `<b>${esc(ITEMS[it].name)}</b> deposit · ` + (canHandMine(r) ? `click to hand-mine (+${fmtMoney(VALUE[it] * Upg.sell * Upg.hand)})` : t < 0 ? 'needs a pump' : `<span class="bad">🔒 hand-mining needs Better Pickaxes Lv ${t}</span> — drills work fine`); }
         else if (t === T_CLIFF && Render.ts >= 10) html = 'Cave wall — pass under it with an Underground Belt';
         else if (t === T_CAVE && Render.ts >= 10) html = 'Cave floor — rich ores, bedrock for Deep Drills';
         else if (t === T_WATER && Render.ts >= 12) html = 'Water — pump it with a Water Pump';
@@ -4800,7 +5290,8 @@ const UI = {
     } else if (k === 'lab') {
       h += `<div class="kv"><span>Research rate</span><span id="insp-rprate"></span><span>Bonus</span><span>×${def.rpMul} RP</span>${def.power ? `<span>Power</span><span>${fmtPower(e.pw)}</span>` : ''}</div><div class="sect">Queued items</div><div class="bufs" id="insp-lab"></div><div class="d" style="color:var(--dim);font-size:.75rem">Every item gives RP ≈ 2×√value. Science packs give 6× more.</div>`;
     } else if (k === 'sell') {
-      h += `<div class="d" style="color:var(--dim);font-size:.82rem;line-height:1.4">${def.liquid ? 'Buys liquids only.' : 'Buys everything except liquids.'} Loads a ${def.liquid ? 'tanker' : 'truck'} and ships when full or after ${BALANCE.hubAutoShip}s idle.</div>` +
+      const buys = def.accept ? 'Buys only ' + def.accept.map(c => (ITEM_CATS.find(x => x[0] === c) || [c, c])[1]).join(', ') + '.' : def.liquid ? 'Buys liquids only.' : 'Buys everything except liquids.';
+      h += `<div class="d" style="color:var(--dim);font-size:.82rem;line-height:1.4">${esc(buys)} Loads a ${def.liquid ? 'tanker' : 'truck'} and ships when full or after ${BALANCE.hubAutoShip}s idle.${def.priceMul && def.priceMul !== 1 ? ` <b style="color:${def.priceMul > 1 ? 'var(--good)' : 'var(--warn)'}">${def.priceMul > 1 ? '+' : ''}${Math.round((def.priceMul - 1) * 100)}% prices</b>` : ''}</div>` +
         `<div class="kv"><span>Load</span><span id="insp-load2"></span><span>Truck value</span><span id="insp-val"></span><span>Last shipment</span><span id="insp-last"></span><span>Income</span><span id="insp-income"></span></div><div class="effbar"><i id="insp-fill"></i></div><div class="bufs" id="insp-inv"></div>` +
         `<div class="row"><button class="btn sm primary" id="insp-ship">🚚 Ship now</button><button class="btn sm" id="insp-market">Market & contracts</button></div>`;
     } else if (k === 'scrubber') {
@@ -4823,6 +5314,7 @@ const UI = {
       const up = BUILDINGS[def.upgrade], un = Build.unlocked(def.upgrade), cost = up.cost - (e.kit ? 0 : e.paid * BALANCE.refundRate);
       h += `<button class="btn sm ${un ? 'primary' : ''}" id="insp-up" ${un ? '' : 'disabled'} data-tip="${un ? 'Replace in place with ' + esc(up.name) : '🔒 ' + esc(TECH[up.tech].name)}">⬆ ${esc(up.name)} ${un ? fmtMoney(Math.max(0, cost)) : ''}</button>`;
     }
+    if (Tools.settingsOf(e)) h += `<button class="btn sm" id="insp-cset" data-tip="Copy recipe/filter (Shift+right-click)">📋 Copy</button>` + (Tools.clip && Tools.clip.kind === k ? `<button class="btn sm" id="insp-pset" data-tip="Paste ${esc(Tools.clip.name)} settings (Shift+click)">📥 Paste</button>` : '');
     h += `<button class="btn sm danger" id="insp-del"><svg class="i"><use href="#i-hammer"/></svg> Demolish</button></div></div>`;
     el.innerHTML = h;
     const ic = $('insp-icon').getContext('2d'), img = Sprites.bodyOf(e) || Sprites.bodyFor(e.type, e.rot, e.mode);
@@ -4848,6 +5340,8 @@ const UI = {
     const on = $('insp-on'); if (on) on.onchange = () => { e.off = !on.checked; Sfx.play('click'); };
     const rot = $('insp-rot'); if (rot) rot.onclick = () => { e.rot = (e.rot + 1) & 3; Sim.touch(e); e.born = Render.now - 120; Sfx.play('click'); this.renderInspector(); };
     const up = $('insp-up'); if (up) up.onclick = () => this.upgrade(e);
+    const cs = $('insp-cset'); if (cs) cs.onclick = () => { Tools.copySettings(e); this.renderInspector(); };
+    const ps = $('insp-pset'); if (ps) ps.onclick = () => Tools.pasteSettings(e);
     const del = $('insp-del'); if (del) del.onclick = () => { Tools.commitDemolish({ sx: e.x, sy: e.y, cx: e.x, cy: e.y }); };
     const mk = $('insp-market'); if (mk) mk.onclick = () => this.openModal('m-market');
     const sh = $('insp-ship'); if (sh) sh.onclick = () => { if (!shipNow(e)) { this.toast(e.shipT > 0 ? 'Already shipping' : 'Nothing to ship yet', 'info'); } };
@@ -4859,16 +5353,45 @@ const UI = {
     if (!to || !Build.unlocked(to)) return;
     const refund = e.kit ? 0 : e.paid * BALANCE.refundRate, cost = ((Build.kit[to] | 0) > 0 ? 0 : up.cost) - refund;
     if (Econ.cash < cost) { this.toast(`Need ${fmtMoney(cost)} to upgrade`, 'bad'); Sfx.play('error'); return; }
-    const snap = snapEnt(e);
-    History.begin(); History.recDel(snap);
-    Build.demolish(e, true);
-    const n = Build.place(to, snap.x, snap.y, snap.r, { mode: snap.m });
-    const cfg = Object.assign({}, snap); delete cfg.p; delete cfg.k; delete cfg.t; delete cfg.u;
-    applySnap(n, cfg);
-    if (History.cur) History.cur.add = [snapEnt(n)];
-    History.end();
-    Sfx.play('research'); Render.burst((n.x + n.w / 2) * TILE, (n.y + n.h / 2) * TILE, '#ffd54a', 18);
-    this.inspect(n);
+    History.begin(); const r = Build.upgradeEnt(e); History.end();
+    if (!r) return;
+    Sfx.play('research'); this.inspect(r.ent);
+  },
+  /* ---------- alerts: machines that need the player's attention ---------- */
+  alerts: [], alertI: 0, alertT: 0,
+  scanAlerts() {
+    const out = this.alerts; out.length = 0;
+    for (const e of Sim.ents.values()) {
+      const s = e.status;
+      if (!e.off && (s === ST.NOPOWER || s === ST.NOFUEL || s === ST.NORECIPE) && e.def.kind !== 'belt') out.push(e);
+    }
+    const n = out.length, chip = $('alerts-chip');
+    chip.classList.toggle('hidden', !n);
+    if (n) {
+      let p = 0, f = 0, r = 0; for (const e of out) { if (e.status === ST.NOPOWER) p++; else if (e.status === ST.NOFUEL) f++; else r++; }
+      $('alerts-n').textContent = n;
+      chip.title = `Needs attention — ${p ? p + ' without power · ' : ''}${f ? f + ' out of fuel · ' : ''}${r ? r + ' with no recipe · ' : ''}click (or N) to jump`;
+      chip.classList.add('has');
+    }
+  },
+  nextAlert() {
+    this.scanAlerts();
+    const a = this.alerts; if (!a.length) { this.toast('✔ No machines need attention', 'good'); return; }
+    a.sort((p, q) => p.id - q.id);
+    this.alertI = this.alertI % a.length;
+    const e = a[this.alertI++];
+    Cam.jump((e.x + e.w / 2) * TILE, (e.y + e.h / 2) * TILE); if (Cam.tz < 1) Cam.tz = 1.2;
+    this.inspect(e); Sfx.play('click');
+  },
+  speedUI() {
+    const chip = $('st-speed'); if (!chip) return;
+    chip.classList.toggle('paused', Game.speed === 0);
+    $('spd-pause').textContent = Game.speed === 0 ? '▶' : '⏸';
+    $('spd-x').textContent = Game.speed === 0 ? 'Paused' : Game.speed + '×';
+  },
+  savedFlash() {
+    const el = $('save-ind'); if (!el) return;
+    el.classList.add('on'); clearTimeout(this._svT); this._svT = setTimeout(() => el.classList.remove('on'), 1400);
   },
   updateInspector() {
     const e = this.sel; if (!e) return;
@@ -4924,7 +5447,7 @@ const UI = {
       const cap = sellCap(e); let val = 0; const list = [];
       for (let i = 0; i < NI; i++) if (e.inv[i] > 0) { list.push(i); val += Econ.price(i) * e.inv[i]; }
       set('insp-load2', e.shipT > 0 ? `shipping… ${e.shipT.toFixed(1)}s` : `${e.invN} / ${cap}`);
-      set('insp-val', '≈ ' + fmtMoney(val * (1 + 0.06 * bLv(e, 'prc')))); set('insp-last', e.lastShip ? fmtMoney(e.lastShip) : '—'); set('insp-income', fmtMoney(Econ.perMin) + '/min');
+      set('insp-val', '≈ ' + fmtMoney(val * (1 + 0.06 * bLv(e, 'prc')) * (e.def.priceMul || 1))); set('insp-last', e.lastShip ? fmtMoney(e.lastShip) : '—'); set('insp-income', fmtMoney(Econ.perMin) + '/min');
       $('insp-fill').style.width = (e.shipT > 0 ? 100 : clamp(e.invN / cap, 0, 1) * 100) + '%';
       chips('insp-inv', list, i => e.inv[i]);
     }
@@ -5177,12 +5700,12 @@ Object.assign(UI, {
     const tog = (k, label) => `<label class="toggle"><input type="checkbox" data-set="${k}" ${S[k] ? 'checked' : ''}> ${label}</label>`;
     const rng = (k, label, min, max, step) => `<div class="field"><label>${label} <b id="sv-${k}">${Math.round(S[k] * 100)}%</b></label><input type="range" data-set="${k}" min="${min}" max="${max}" step="${step}" value="${S[k]}"></div>`;
     const slots = [0, 1, 2].map(n => { const m = Save.slotMeta(n); return `<div class="slot"><b>Slot ${n + 1}</b><div class="meta">${m ? `${fmtMoney(m.cash)} · ${m.ents} bldgs<br>${new Date(m.at).toLocaleString()}` : 'Empty'}</div><div class="row"><button class="btn sm" data-save="${n}">Save</button><button class="btn sm" data-load="${n}" ${m ? '' : 'disabled'}>Load</button></div></div>`; }).join('');
-    const keys = [['WASD / Arrows', 'Pan'], ['Wheel / Pinch', 'Zoom'], ['Right-drag / Middle-drag', 'Pan'], ['1–9', 'Pick building'], ['Tab', 'Next category'], ['R / Shift+R', 'Rotate'], ['Q', 'Pipette (copy hovered type)'], ['X', 'Demolish tool'], ['C / V', 'Copy area / Paste'], ['Del', 'Demolish hovered'], ['Ctrl+Z / Ctrl+Y', 'Undo / Redo'], ['Ctrl+S', 'Save now'], ['Esc', 'Cancel · close · main menu'], ['T I K G H O', 'Research, Stats, Market, Goals, Dex, Settings'], ['P', 'Pollution map'], ['M', 'Toggle minimap'], ['Space', 'Reset zoom'], ['F3', 'FPS counter']];
+    const keys = [['WASD / Arrows', 'Pan'], ['Wheel / Pinch', 'Zoom'], ['Right-drag / Middle-drag', 'Pan'], ['1–9', 'Pick building'], ['Tab', 'Next category'], ['R / Shift+R', 'Rotate'], ['Q', 'Pipette (copy hovered type)'], ['X', 'Demolish tool'], ['C / V', 'Copy area / Paste'], ['Del', 'Demolish hovered'], ['Ctrl+Z / Ctrl+Y', 'Undo / Redo'], ['Ctrl+S', 'Save now'], ['Esc', 'Cancel · close · main menu'], ['T I K G H O', 'Research, Stats, Market, Goals, Dex, Settings'], ['P', 'Pollution map'], ['M', 'Toggle minimap'], ['Space', 'Pause / resume'], [', / .', 'Slower / faster (1–3×)'], ['U', 'Upgrade planner (drag a box)'], ['N', 'Jump to next machine needing attention'], ['Shift+Right-click · Ctrl+C', 'Copy building settings'], ['Shift+Click · Ctrl+V', 'Paste building settings'], ['/', 'Search buildings'], ['Z', 'Reset zoom'], ['F3', 'FPS counter']];
     $('settings-body').innerHTML = `<div class="settings-grid">
       <h3>Audio</h3>${rng('master', 'Master volume', 0, 1, 0.05)}${rng('music', 'Music', 0, 1, 0.05)}${rng('sfx', 'Sound effects', 0, 1, 0.05)}<div></div>
       <h3>Graphics</h3>
       <div class="field"><label>Quality</label><select data-set="quality"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low (fast)</option></select></div>
-      <div class="field">${tog('particles', 'Particles')}${tog('shadows', 'Shadows')}${tog('daynight', 'Day/night cycle')}</div>
+      <div class="field">${tog('particles', 'Particles')}${tog('shadows', 'Shadows')}${tog('clouds', 'Cloud shadows')}${tog('daynight', 'Day/night cycle')}</div>
       <div class="field">${tog('grid', 'Grid while building')}${tog('minimap', 'Minimap')}${tog('showFps', 'Show FPS')}</div>
       <div class="field">${tog('colorblind', 'Colorblind-friendly status colors')}${tog('events', 'Random positive events')}${tog('tutorial', 'Tutorial hints')}</div>
       <h3>Interface</h3>
@@ -5229,7 +5752,11 @@ Object.assign(UI, {
   },
   update() {
     const set = (id, v) => { const el = $(id); if (el.textContent !== v) el.textContent = v; };
-    set('cash', fmtMoney(Econ.cash));
+    const cs = fmtMoney(Econ.cash), ce = $('cash');
+    if (ce.textContent !== cs && Econ.cash > (this._lastCash || 0) + 0.5) { ce.classList.remove('up'); void ce.offsetWidth; ce.classList.add('up'); }
+    this._lastCash = Econ.cash;
+    set('cash', cs);
+    this.alertT -= 0.1; if (this.alertT <= 0) { this.alertT = 1; this.scanAlerts(); }
     set('income', `+${fmtMoney(Econ.perMin)}/min`);
     const P = Power.prod, D = Power.demand;
     set('power-text', D > 0 || Power.cap > 0 ? `${fmtPower(P)} / ${fmtPower(Math.max(D, 0))}` : 'No grid');
@@ -5589,7 +6116,7 @@ const Save = {
       factor: Array.from(Econ.factor, f => Math.round(f * 1000) / 1000), sold: sp(Econ.soldItem), soldTotal: Econ.soldTotal,
       econ: { hr: Econ.hubReceived, sh: Econ.shipments, tk: Econ.tankers, ws: Econ.weaponsSold, fs: Econ.foodSold, cd: Econ.contractsDone, ct: Econ.contracts.map(c => [ITEMS[c.item].id, c.n, c.got, c.reward, Math.round(c.left)]) },
       produced: sp(Stats.producedLife), consumed: sp(Stats.consumedLife), playTime: Stats.playTime,
-      stats: { crops: Stats.cropsLife, hand: Stats.handMined, upg: Stats.upgradesBought, cave: Stats.caveBuilt ? 1 : 0 },
+      stats: { crops: Stats.cropsLife, hand: Stats.handMined, upg: Stats.upgradesBought, cave: Stats.caveBuilt ? 1 : 0, burned: Stats.burned, planned: Stats.planned },
       kit: Build.kit, research: Research.levels, rp: Math.round(Research.rp), rpLife: Math.round(Research.rpLife), goals: Goals.done,
       poll: { g: sparse(Array.from(Pollution.grid, v => Math.round(v))), s: Math.round(Pollution.scrubbed) },
       ach: Ach.done, dex: ITEMS.filter(it => Dex.seen[it.idx]).map(it => it.id),
@@ -5603,7 +6130,7 @@ const Save = {
     try { localStorage.setItem(key, JSON.stringify(obj)); return true; }
     catch (e) { UI.toast('Could not save — browser storage is full or blocked. Use Export instead.', 'bad'); return false; }
   },
-  autosave() { if (!Game.ready) return; if (this.write(SAVE_KEY, this.serialize())) this.lastAt = Date.now(); Meta.save(); },
+  autosave() { if (!Game.ready) return; if (this.write(SAVE_KEY, this.serialize())) { this.lastAt = Date.now(); UI.savedFlash(); } Meta.save(); },
   saveSlot(n) { if (this.write(SLOT_KEY + n, this.serialize())) { UI.toast(`Saved to slot ${n + 1}`, 'good'); Sfx.play('click'); } },
   slotMeta(n) {
     try { const s = localStorage.getItem(SLOT_KEY + n); if (!s) return null; const o = JSON.parse(s); return { cash: o.cash, at: o.at, ents: o.ents.length + o.belts.reduce((a, b) => a + b[4], 0) }; }
@@ -5646,7 +6173,16 @@ const Save = {
    10. BOOT — game lifecycle, main loop, error overlay
    ===================================================================== */
 const Game = {
-  ready: false, hiddenAt: 0,
+  ready: false, hiddenAt: 0, speed: 1, lastSpeed: 1,
+  togglePause() {
+    if (this.speed === 0) this.speed = this.lastSpeed || 1; else { this.lastSpeed = this.speed; this.speed = 0; }
+    UI.speedUI(); UI.toast(this.speed ? `▶ Resumed (${this.speed}×)` : '⏸ Paused — press Space to resume', 'info', 1400);
+  },
+  cycleSpeed(d) {
+    const s = this.speed || this.lastSpeed || 1, n = clamp(s + d, 1, 3);
+    this.speed = n; this.lastSpeed = n; UI.speedUI();
+    if (n >= 3) Ach.check();
+  },
   resetCore(seed, opts) {
     Sim.clear(); World.generate(seed, opts);
     Econ.reset(); Stats.reset(); Pollution.reset(); Research.reset(); Goals.done = {}; History.clear();
@@ -5680,7 +6216,7 @@ const Game = {
       Econ.contracts = (E.ct || []).filter(c => II[c[0]] !== undefined).map(c => ({ item: II[c[0]], n: c[1], got: c[2], reward: c[3], left: c[4] }));
     }
     unsparse(Stats.producedLife, o.produced); unsparse(Stats.consumedLife, o.consumed); Stats.playTime = +o.playTime || 0;
-    if (o.stats) { Stats.cropsLife = o.stats.crops | 0; Stats.handMined = o.stats.hand | 0; Stats.upgradesBought = o.stats.upg | 0; Stats.caveBuilt = !!o.stats.cave; }
+    if (o.stats) { Stats.cropsLife = o.stats.crops | 0; Stats.handMined = o.stats.hand | 0; Stats.upgradesBought = o.stats.upg | 0; Stats.caveBuilt = !!o.stats.cave; Stats.burned = o.stats.burned | 0; Stats.planned = o.stats.planned | 0; }
     for (let i = 0; i < NI; i++) if (Stats.producedLife[i] > 0 || Econ.soldItem[i] > 0) Dex.seen[i] = 1;
     if (o.dex) for (const id of o.dex) if (II[id] !== undefined) Dex.seen[II[id]] = 1;
     if (o.ach) for (const k in o.ach) if (!Ach.done[k]) Ach.done[k] = o.ach[k];
@@ -5706,7 +6242,7 @@ const Game = {
       const e = World.entAt(a[0], a[1]); if (!e || e.def.kind !== 'belt') continue;
       e.n = 0; for (let i = 2; i + 1 < a.length && e.n < 4; i += 2) { if (a[i] >= NI) continue; e.ty[e.n] = a[i]; e.p[e.n] = e.pp[e.n] = a[i + 1]; e.n++; }
     }
-    if (!Sim.countType('sell')) Build.place('sell', World.cx - 1, World.cy - 1, 0, { free: true, quiet: true, noHistory: true });
+    if (!BTYPES.some(k => isGeneralHub(BUILDINGS[k]) && Sim.countType(k))) Build.place('sell', World.cx - 1, World.cy - 1, 0, { free: true, quiet: true, noHistory: true });
     Sim.relink();
     while (Econ.contracts.length < 3) Econ.contracts.push(Econ.newContract());
     if (o.cam) { Cam.jump(o.cam.x, o.cam.y); Cam.zoom = Cam.tz = clamp(o.cam.z || 1, Cam.minZ, Cam.maxZ); }
@@ -5756,10 +6292,10 @@ function loop(now) {
     let dt = lastT ? (now - lastT) / 1000 : 0; lastT = now;
     if (dt > 0.25) dt = 0.25; if (dt < 0) dt = 0;
     if (!Menu.open) {
-      acc += dt;
-      let steps = 0;
-      while (acc >= DT && steps < 8) { Sim.step(); acc -= DT; steps++; }
-      if (steps >= 8) acc = 0;
+      acc += dt * Game.speed;
+      let steps = 0; const maxSteps = 8 * Math.max(1, Game.speed);
+      while (acc >= DT && steps < maxSteps) { Sim.step(); acc -= DT; steps++; }
+      if (steps >= maxSteps) acc = 0;
     } else { Cam.x += dt * 12; }
     Cam.update(dt);
     if (Input.over) Input.updateHover();
